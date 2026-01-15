@@ -14,9 +14,10 @@ interface StudyState {
   isActive: boolean;
   isBreak: boolean;
   currentTask: string;
-  
-  // NEW: Sound State
   isSoundOn: boolean;
+  
+  // NEW: Spotify Auth Token
+  spotifyToken: string | null;
 
   // Stats
   sessionsCompleted: number;
@@ -42,8 +43,11 @@ interface StudyState {
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
 
-  // NEW: Sound Action
+  // Sound Action
   toggleSound: () => void;
+
+  // NEW: Spotify Action
+  setSpotifyToken: (token: string | null) => void;
 }
 
 export const useStudyStore = create<StudyState>()(
@@ -54,7 +58,8 @@ export const useStudyStore = create<StudyState>()(
       isActive: false,
       isBreak: false,
       currentTask: "Deep Work",
-      isSoundOn: false, // Default to mute
+      isSoundOn: false,
+      spotifyToken: null, // <--- The Missing Piece
       sessionsCompleted: 0,
       totalTime: 0,
       examName: "Finals",
@@ -98,8 +103,11 @@ export const useStudyStore = create<StudyState>()(
         tasks: state.tasks.filter((t) => t.id !== id)
       })),
 
-      // --- NEW: Sound Logic ---
+      // --- Sound Logic ---
       toggleSound: () => set((state) => ({ isSoundOn: !state.isSoundOn })),
+
+      // --- NEW: Spotify Logic ---
+      setSpotifyToken: (token) => set({ spotifyToken: token }),
 
     }),
     { name: 'flowstate-storage' }

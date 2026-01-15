@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
+import SpotifyPlayer from "../../../components/player/SpotifyPlayer";
 import { Play, Pause, RotateCcw, Headphones, Music2 } from "lucide-react";
 import confetti from "canvas-confetti";
 
@@ -116,20 +117,10 @@ export default function TimerPage() {
       </div>
 
       {/* Music Player Card (Appears when Sound is toggled ON) */}
+      {/* Spotify Player: Slides up when "Headphones" is clicked */}
       {isSoundOn && (
-        <div className="absolute bottom-24 bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300 z-20">
-          <div className="p-2 bg-[#1DB954]/20 rounded-lg">
-            <Music2 size={18} className="text-[#1DB954]" />
-          </div>
-          <div className="text-left">
-            <p className="text-white text-xs font-medium">Deep Focus Mode</p>
-            <button 
-              onClick={openSpotify}
-              className="text-[#1DB954] text-[10px] font-bold uppercase tracking-wider hover:underline"
-            >
-              Open Spotify Lo-Fi
-            </button>
-          </div>
+        <div className="animate-in slide-in-from-bottom-10 fade-in duration-500 z-50">
+           <SpotifyPlayer />
         </div>
       )}
 
