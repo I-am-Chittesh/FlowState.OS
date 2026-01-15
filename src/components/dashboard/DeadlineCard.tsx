@@ -1,57 +1,61 @@
 "use client";
 
-import { differenceInDays, format } from "date-fns";
-import { CalendarDays } from "lucide-react";
-import { useStudyStore } from "../../lib/store/useStudyStore"; // <--- The Critical Connection
+import { Calendar, Clock, AlertCircle } from "lucide-react";
 
-export default function DeadlineCard() {
-  // 1. Get the REAL data from the Settings (Store)
-  const { examName, examDate } = useStudyStore();
-  
-  // 2. Safety Check: If date is missing/broken, default to today to prevent crash
-  const targetDate = examDate ? new Date(examDate) : new Date();
-  const today = new Date();
+interface DeadlineCardProps {
+  title?: string;
+  dueDate?: Date;
+}
 
-  // 3. The Math
-  const daysLeft = differenceInDays(targetDate, today);
+export default function DeadlineCard({ title, dueDate }: DeadlineCardProps) {
+  // Fallback if no goal is set
+  if (!title || !dueDate) {
+    return (
+      <div className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-2xl flex items-center justify-between">
+        <div className="flex items-center gap-3 text-zinc-500">
+          <AlertCircle size={20} />
+          <span className="text-sm font-medium">No Active Goals</span>
+        </div>
+        <span className="text-xs text-zinc-600 bg-zinc-900 px-2 py-1 rounded">Set in Config</span>
+      </div>
+    );
+  }
+
+  // Calculate Time Left
+  const now = new Date();
+  const diffTime = dueDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  // Calculate Progress (Assuming a 90-day semester cycle for visual bar)
-  const totalDuration = 90; 
-  const progress = Math.max(0, Math.min(100, ((totalDuration - daysLeft) / totalDuration) * 100));
+  const isUrgent = diffDays <= 3;
 
   return (
-    <div className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 space-y-4">
+    <div className={`relative overflow-hidden p-5 rounded-2xl border transition-all ${isUrgent ? "bg-red-500/10 border-red-500/20" : "bg-indigo-500/10 border-indigo-500/20"}`}>
       
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-500/10 rounded-lg">
-            <CalendarDays className="w-5 h-5 text-indigo-400" />
-          </div>
-          <div>
-            {/* Dynamic Name from Settings */}
-            <h3 className="text-white font-medium text-sm">{examName || "My Goal"}</h3>
-            {/* Dynamic Date from Settings */}
-            <p className="text-zinc-500 text-xs">{format(targetDate, "MMM do, yyyy")}</p>
-          </div>
+      <div className="flex justify-between items-start mb-4 relative z-10">
+        <div>
+          <h3 className={`text-xs font-bold uppercase tracking-wider mb-1 ${isUrgent ? "text-red-400" : "text-indigo-400"}`}>
+            Primary Objective
+          </h3>
+          <h2 className="text-xl font-bold text-white leading-tight">
+            {title}
+          </h2>
         </div>
-        <span className="text-2xl font-bold text-white tabular-nums">
-          {daysLeft}d
+        <div className={`p-2 rounded-lg ${isUrgent ? "bg-red-500/20 text-red-400" : "bg-indigo-500/20 text-indigo-400"}`}>
+          <Calendar size={20} />
+        </div>
+      </div>
+
+      <div className="flex items-end gap-2 relative z-10">
+        <span className="text-4xl font-bold text-white tracking-tighter">
+          {diffDays}
+        </span>
+        <span className={`mb-1.5 text-sm font-medium ${isUrgent ? "text-red-300" : "text-indigo-300"}`}>
+          days remaining
         </span>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex justify-between text-[10px] text-zinc-500 uppercase tracking-wider font-medium">
-          <span>Semester Progress</span>
-          <span>{Math.round(progress)}%</span>
-        </div>
-        <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-
+      {/* Decorative Blur */}
+      <div className={`absolute -bottom-10 -right-10 w-32 h-32 rounded-full blur-[60px] opacity-40 ${isUrgent ? "bg-red-500" : "bg-indigo-500"}`} />
     </div>
   );
 }

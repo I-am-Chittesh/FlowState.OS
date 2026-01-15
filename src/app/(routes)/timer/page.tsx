@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
 import SpotifyPlayer from "../../../components/player/SpotifyPlayer";
+import { useSpotifyPlayer } from "../../../hooks/useSpotifyPlayer";
 import { Play, Pause, RotateCcw, Headphones, Music2 } from "lucide-react";
 import confetti from "canvas-confetti";
 
@@ -11,14 +12,17 @@ export default function TimerPage() {
     timeLeft, 
     isActive, 
     isBreak,
-    currentTask,
-    isSoundOn,      // <--- New State
+    currentTask,    // <--- New State
     startTimer, 
+    isSoundOn,
+    spotifyToken,
     pauseTimer, 
     resetTimer, 
     tick,
     toggleSound     // <--- New Action
   } = useStudyStore();
+  
+  useSpotifyPlayer(spotifyToken);
 
   // Timer Engine
   useEffect(() => {

@@ -3,44 +3,45 @@
 import { useEffect, useState } from "react";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
 import DeadlineCard from "../../../components/dashboard/DeadlineCard";
-import { Flame, Timer, Trophy, Quote, Zap } from "lucide-react";
+import { Flame, Timer, Trophy, Quote } from "lucide-react";
 
 export default function DashboardPage() {
-  const { totalTime, sessionsCompleted, xp, level } = useStudyStore();
+  const { totalTime, sessionsCompleted, xp, level, goals, fetchData } = useStudyStore();
   const [greeting, setGreeting] = useState("Good Morning");
   const [quote, setQuote] = useState({ text: "Stay Hard.", author: "Goggins" });
+
+  // 1. Load Data on Mount
+  useEffect(() => {
+    fetchData(); // <--- Fetch Goals & Tasks from Supabase
+    
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting("Good Morning");
+    else if (hour < 18) setGreeting("Good Afternoon");
+    else setGreeting("Good Evening");
+    
+    // Random Quote
+    const quotes = [
+      { text: "We don't stop when we're tired. We stop when we're done.", author: "David Goggins" },
+      { text: "He who has a why to live can bear almost any how.", author: "Nietzsche" },
+      { text: "Discipline is doing what you hate to do like you love it.", author: "Mike Tyson" },
+      { text: "The only easy day was yesterday.", author: "Navy SEALs" },
+      { text: "Suffer the pain of discipline or the pain of regret.", author: "Unknown" },
+      { text: "Don't count the days, make the days count.", author: "Muhammad Ali" }
+    ];
+    setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+  }, [fetchData]);
+
+  // 2. Find the Priority Goal (Closest Deadline)
+  const sortedGoals = [...goals].sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+  const priorityGoal = sortedGoals.length > 0 ? sortedGoals[0] : null;
 
   // Level Logic
   const xpForNextLevel = 500;
   const currentLevelProgress = xp % xpForNextLevel;
   const percentage = (currentLevelProgress / xpForNextLevel) * 100;
 
-  // Quote Bank
-  const quotes = [
-    { text: "We don't stop when we're tired. We stop when we're done.", author: "David Goggins" },
-    { text: "He who has a why to live can bear almost any how.", author: "Nietzsche" },
-    { text: "Discipline is doing what you hate to do like you love it.", author: "Mike Tyson" },
-    { text: "You have power over your mind - not outside events.", author: "Marcus Aurelius" },
-    { text: "The only easy day was yesterday.", author: "Navy SEALs" },
-    { text: "It pays to be a winner.", author: "SEAL Creed" },
-    { text: "Suffer the pain of discipline or the pain of regret.", author: "Unknown" },
-    { text: "Your potential is on the other side of your comfort zone.", author: "Unknown" },
-    { text: "Don't count the days, make the days count.", author: "Muhammad Ali" },
-    { text: "Stay Hard.", author: "David Goggins" }
-  ];
-
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting("Good Morning");
-    else if (hour < 18) setGreeting("Good Afternoon");
-    else setGreeting("Good Evening");
-
-    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-    setQuote(randomQuote);
-  }, []);
-
   return (
-    <div className="h-full flex flex-col p-6 space-y-6">
+    <div className="h-full flex flex-col p-6 space-y-6 pb-24">
       
       {/* Header */}
       <div className="space-y-1 mt-4">
@@ -52,7 +53,7 @@ export default function DashboardPage() {
         </h1>
       </div>
 
-      {/* NEW: Level Progress Card */}
+      {/* Level Progress */}
       <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 p-5 rounded-2xl relative overflow-hidden">
         <div className="flex justify-between items-end mb-2">
           <div>
@@ -66,8 +67,6 @@ export default function DashboardPage() {
              <span className="text-xs text-zinc-400">{currentLevelProgress} / {xpForNextLevel} XP</span>
           </div>
         </div>
-        
-        {/* The Bar */}
         <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
           <div 
             className="h-full bg-amber-500 transition-all duration-1000 ease-out"
@@ -84,9 +83,7 @@ export default function DashboardPage() {
           </div>
           <span className="text-zinc-500 text-xs font-medium uppercase">Focus Time</span>
           <div>
-            <span className="text-3xl font-bold text-white">
-              {(totalTime / 60).toFixed(1)}
-            </span>
+            <span className="text-3xl font-bold text-white">{(totalTime / 60).toFixed(1)}</span>
             <span className="text-sm text-zinc-500 ml-1">hrs</span>
           </div>
         </div>
@@ -97,20 +94,21 @@ export default function DashboardPage() {
           </div>
           <span className="text-zinc-500 text-xs font-medium uppercase">Sessions</span>
           <div>
-            <span className="text-3xl font-bold text-white">
-              {sessionsCompleted}
-            </span>
+            <span className="text-3xl font-bold text-white">{sessionsCompleted}</span>
             <span className="text-sm text-zinc-500 ml-1">done</span>
           </div>
         </div>
       </div>
 
-      {/* Deadline Card */}
+      {/* Dynamic Priority Goal */}
       <div>
-        <DeadlineCard />
+        <DeadlineCard 
+          title={priorityGoal?.title} 
+          dueDate={priorityGoal?.deadline} 
+        />
       </div>
 
-      {/* Motivation Footer */}
+      {/* Footer */}
       <div className="mt-auto bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-4 flex gap-3 items-center">
         <div className="p-2 bg-white/5 rounded-full shrink-0">
           <Quote size={16} className="text-zinc-400" />

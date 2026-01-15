@@ -1,135 +1,171 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { supabase } from '../supabase';
 
-// Task Interface
+// --- TYPES ---
+export interface Goal {
+  id: string;
+  title: string;
+  deadline: Date;
+  color: string;
+}
+
 export interface Task {
   id: string;
   title: string;
   completed: boolean;
+  goalId: string | null;
 }
 
 interface StudyState {
-  // Timer State
+  // --- STATE ---
   timeLeft: number;
   isActive: boolean;
   isBreak: boolean;
   currentTask: string;
   isSoundOn: boolean;
   
-  // Spotify Auth
   spotifyToken: string | null;
-
-  // Stats & Gamification
+  xp: number;
+  level: number;
   sessionsCompleted: number;
   totalTime: number;
-  xp: number;         // <--- NEW
-  level: number;      // <--- NEW
 
-  // Exam Customization
-  examName: string;
-  examDate: Date; 
-
-  // Task Management
+  goals: Goal[];
   tasks: Task[];
 
-  // Actions
+  // --- ACTIONS ---
   startTimer: () => void;
   pauseTimer: () => void;
   resetTimer: () => void;
   tick: () => void;
   setTask: (task: string) => void;
-  setExamDetails: (name: string, date: Date) => void;
   
-  addTask: (title: string) => void;
-  toggleTask: (id: string) => void;
-  deleteTask: (id: string) => void;
-
   toggleSound: () => void;
   setSpotifyToken: (token: string | null) => void;
+
+  // Database Actions
+  fetchData: () => Promise<void>;
+  addGoal: (title: string, deadline: Date, color: string) => Promise<void>;
+  deleteGoal: (id: string) => Promise<void>;
+  addTask: (title: string, goalId: string | null) => Promise<void>;
+  toggleTask: (id: string, completed: boolean) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
 }
 
-export const useStudyStore = create<StudyState>()(
-  persist(
-    (set) => ({
-      // --- Initial Values ---
-      timeLeft: 25 * 60,
-      isActive: false,
-      isBreak: false,
-      currentTask: "Deep Work",
-      isSoundOn: false,
-      spotifyToken: null,
-      sessionsCompleted: 0,
-      totalTime: 0,
-      xp: 0,          // Start at 0 XP
-      level: 1,       // Start at Level 1
-      examName: "Finals",
-      examDate: new Date(2026, 1, 15),
-      tasks: [],
+export const useStudyStore = create<StudyState>((set, get) => ({
+  // --- INITIAL VALUES ---
+  timeLeft: 25 * 60,
+  isActive: false,
+  isBreak: false,
+  currentTask: "Deep Work",
+  isSoundOn: false,
+  spotifyToken: null,
+  xp: 0,
+  level: 1,
+  sessionsCompleted: 0,
+  totalTime: 0,
+  goals: [],
+  tasks: [],
 
-      // --- Timer Actions ---
-      startTimer: () => set({ isActive: true }),
-      pauseTimer: () => set({ isActive: false }),
-      resetTimer: () => set({ isActive: false, timeLeft: 25 * 60, isBreak: false }),
-      setTask: (task) => set({ currentTask: task }),
-      setExamDetails: (name, date) => set({ examName: name, examDate: date }),
+  // --- TIMER LOGIC ---
+  startTimer: () => set({ isActive: true }),
+  pauseTimer: () => set({ isActive: false }),
+  resetTimer: () => set({ isActive: false, timeLeft: 25 * 60, isBreak: false }),
+  setTask: (task) => set({ currentTask: task }),
+  toggleSound: () => set((state) => ({ isSoundOn: !state.isSoundOn })),
+  setSpotifyToken: (token) => set({ spotifyToken: token }),
 
-      // --- Gamified Heartbeat ---
-      tick: () => set((state) => {
-        if (state.timeLeft <= 0) {
-          const wasWorking = !state.isBreak;
-          
-          // XP LOGIC: 100 XP for a finished session
-          const xpGain = wasWorking ? 100 : 0;
-          const newXp = state.xp + xpGain;
-          // Level Up every 500 XP
-          const newLevel = Math.floor(newXp / 500) + 1;
+  tick: () => set((state) => {
+    if (state.timeLeft <= 0) {
+      const wasWorking = !state.isBreak;
+      const xpGain = wasWorking ? 100 : 0;
+      const newXp = state.xp + xpGain;
+      const newLevel = Math.floor(newXp / 500) + 1;
 
-          return { 
-            isActive: false, 
-            isBreak: wasWorking, 
-            timeLeft: wasWorking ? 5 * 60 : 25 * 60,
-            currentTask: wasWorking ? "Rest & Recover" : "Deep Work",
-            sessionsCompleted: wasWorking ? state.sessionsCompleted + 1 : state.sessionsCompleted,
-            totalTime: wasWorking ? state.totalTime + 25 : state.totalTime,
-            xp: newXp,      // Update XP
-            level: newLevel // Update Level
-          };
-        }
-        return { timeLeft: state.timeLeft - 1 };
-      }),
+      return { 
+        isActive: false, 
+        isBreak: wasWorking, 
+        timeLeft: wasWorking ? 5 * 60 : 25 * 60,
+        currentTask: wasWorking ? "Rest & Recover" : "Deep Work",
+        sessionsCompleted: wasWorking ? state.sessionsCompleted + 1 : state.sessionsCompleted,
+        totalTime: wasWorking ? state.totalTime + 25 : state.totalTime,
+        xp: newXp,
+        level: newLevel
+      };
+    }
+    return { timeLeft: state.timeLeft - 1 };
+  }),
 
-      addTask: (title) => set((state) => ({
-        tasks: [...state.tasks, { id: Date.now().toString(), title, completed: false }]
-      })),
+  // --- DATABASE ACTIONS ---
+  fetchData: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-      // --- Gamified Tasks ---
-      toggleTask: (id) => set((state) => {
-        // Find the task to see if we are checking or unchecking
-        const task = state.tasks.find((t) => t.id === id);
-        if (!task) return {};
+    const { data: goalsData } = await supabase.from('goals').select('*').order('deadline', { ascending: true });
+    const { data: tasksData } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+    const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
 
-        const isCompleting = !task.completed;
-        // +50 XP for finishing, -50 XP if you uncheck it
-        const xpChange = isCompleting ? 50 : -50;
-        
-        const newXp = Math.max(0, state.xp + xpChange); // Don't go below 0
-        const newLevel = Math.floor(newXp / 500) + 1;
+    set({
+      goals: goalsData?.map(g => ({ ...g, deadline: new Date(g.deadline) })) || [],
+      tasks: tasksData || [],
+      xp: profileData?.xp || 0,
+      level: profileData?.level || 1,
+      totalTime: profileData?.total_time || 0,
+      sessionsCompleted: profileData?.sessions_completed || 0
+    });
+  },
 
-        return {
-          tasks: state.tasks.map((t) => t.id === id ? { ...t, completed: !t.completed } : t),
-          xp: newXp,
-          level: newLevel
-        };
-      }),
+  addGoal: async (title, deadline, color) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-      deleteTask: (id) => set((state) => ({
-        tasks: state.tasks.filter((t) => t.id !== id)
-      })),
+    const { data, error } = await supabase
+      .from('goals')
+      .insert({ user_id: user.id, title, deadline: deadline.toISOString(), color })
+      .select()
+      .single();
 
-      toggleSound: () => set((state) => ({ isSoundOn: !state.isSoundOn })),
-      setSpotifyToken: (token) => set({ spotifyToken: token }),
+    if (!error && data) {
+      set((state) => ({ 
+        goals: [...state.goals, { ...data, deadline: new Date(data.deadline) }] 
+      }));
+    }
+  },
 
-    }),
-    { name: 'flowstate-storage' }
-  )
-);
+  deleteGoal: async (id) => {
+    await supabase.from('goals').delete().eq('id', id);
+    set((state) => ({ 
+      goals: state.goals.filter((g) => g.id !== id),
+      tasks: state.tasks.filter((t) => t.goalId !== id)
+    }));
+  },
+
+  addTask: async (title, goalId) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert({ user_id: user.id, title, goal_id: goalId, is_completed: false })
+      .select()
+      .single();
+
+    if (!error && data) {
+      set((state) => ({ 
+        tasks: [{ id: data.id, title: data.title, completed: data.is_completed, goalId: data.goal_id }, ...state.tasks] 
+      }));
+    }
+  },
+
+  toggleTask: async (id, completed) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) => t.id === id ? { ...t, completed } : t)
+    }));
+    await supabase.from('tasks').update({ is_completed: completed }).eq('id', id);
+  },
+
+  deleteTask: async (id) => {
+    await supabase.from('tasks').delete().eq('id', id);
+    set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
+  },
+}));
