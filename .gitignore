@@ -1,0 +1,29 @@
+# 1. Dependencies (The heaviest folder)
+/node_modules
+
+# 2. Next.js Build Output (Changes every time you run the app)
+/.next
+/out
+/build
+
+# 3. Environment Variables (Critical for security - hides your API keys)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 4. OS Metadata (Junk files created by Mac/Windows)
+.DS_Store
+Thumbs.db
+
+# 5. Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 6. IDE Settings (Keeps your personal VS Code setup private)
+.vscode/
+.idea/
+*.swp
+*.swo
