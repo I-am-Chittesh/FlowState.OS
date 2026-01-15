@@ -4,13 +4,13 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Lock, Sparkles, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase"; // <--- CONNECTED TO BRAIN
+import { supabase } from "../../lib/supabase"; 
 
 export default function LoginPage() {
   const router = useRouter();
   
   // State
-  const [isSignUp, setIsSignUp] = useState(false); // Toggle between Login/Signup
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -23,19 +23,33 @@ export default function LoginPage() {
     damping: 30
   };
 
-  // --- LOGIC 1: GOOGLE ---
+  // --- FIXED GOOGLE LOGIC ---
   const handleGoogleLogin = async () => {
-    // Note: This requires Google Auth enabled in Supabase Dashboard
+    // 1. HARDCODE YOUR VERCEL URL HERE
+    // IMPORTANT: No trailing slash at the end
+    const SITE_URL = "https://flowstate-os.vercel.app"; 
+
+    // Safety check to prevent errors if you forget to change it
+    if (SITE_URL.includes("YOUR-APP-NAME")) {
+      alert("DEV ERROR: You need to update the SITE_URL in login/page.tsx line 23!");
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/callback`
+        // This forces Google to send you back to your Vercel app, not the mail app
+        redirectTo: `${SITE_URL}/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       }
     });
     if (error) setErrorMsg(error.message);
   };
 
-  // --- LOGIC 2: EMAIL/PASSWORD ---
+  // --- EMAIL/PASSWORD LOGIC ---
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -43,7 +57,6 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        // CREATE ACCOUNT
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -51,14 +64,11 @@ export default function LoginPage() {
         if (error) throw error;
         alert("Check your email for the confirmation link!");
       } else {
-        // LOGIN
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
-        
-        // Success? Go to Timer
         router.push("/timer");
       }
     } catch (error: any) {
@@ -105,7 +115,6 @@ export default function LoginPage() {
         {/* The Form */}
         <form onSubmit={handleEmailLogin} className="space-y-4">
           
-          {/* Email */}
           <div className="relative group">
             <motion.div 
               animate={focusedField === "email" ? { scale: 1.02 } : { scale: 1 }}
@@ -126,7 +135,6 @@ export default function LoginPage() {
             </motion.div>
           </div>
 
-          {/* Password */}
           <div className="relative group">
             <motion.div 
               animate={focusedField === "password" ? { scale: 1.02 } : { scale: 1 }}
@@ -148,7 +156,6 @@ export default function LoginPage() {
             </motion.div>
           </div>
 
-          {/* Error Message */}
           {errorMsg && (
             <motion.div 
               initial={{ opacity: 0, y: -10 }}
@@ -160,7 +167,6 @@ export default function LoginPage() {
             </motion.div>
           )}
 
-          {/* Main Action Button */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -195,7 +201,7 @@ export default function LoginPage() {
           <div className="relative flex justify-center text-xs uppercase"><span className="bg-black px-2 text-zinc-600">Or continue with</span></div>
         </div>
 
-        {/* Google Button (Requires Setup) */}
+        {/* Google Button */}
         <motion.button
           onClick={handleGoogleLogin}
           whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.05)" }}
