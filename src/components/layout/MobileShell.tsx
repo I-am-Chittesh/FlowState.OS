@@ -33,7 +33,21 @@ export default function MobileShell({ children }: { children: React.ReactNode })
     return () => subscription.unsubscribe();
   }, [pathname, router]);
 
-  if (isLoading) return <div className="h-screen bg-black" />; 
+  // ... inside MobileShell component ...
+
+  // REPLACE the old "if (isLoading)" block with this smoother version:
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full bg-black flex flex-col items-center justify-center z-50">
+        {/* A smooth breathing logo animation */}
+        <div className="w-16 h-16 bg-zinc-900 rounded-2xl animate-pulse flex items-center justify-center border border-zinc-800">
+           <div className="w-8 h-8 bg-emerald-500/20 rounded-full animate-ping" />
+        </div>
+      </div>
+    );
+  }
+
+  // ... rest of the code ...
 
   // --- RENDER HELPERS ---
   const isLoginPage = pathname === "/login" || pathname === "/callback";
