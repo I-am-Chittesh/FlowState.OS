@@ -7,11 +7,21 @@
   --foreground: #fafafa;
 }
 
+html {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
   /* Prevents rubber-banding on Mac/iOS */
   overscroll-behavior-y: none;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 /* Hide Scrollbar but allow scrolling */
@@ -21,4 +31,31 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Safe area for notched devices */
+@supports (padding: max(0px)) {
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Dev mode indicator (shows mobile frame on desktop) */
+@media (min-width: 768px) {
+  body::before {
+    content: "📱 Mobile Dev Frame";
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: #666;
+    z-index: -1;
+    pointer-events: none;
+  }
 }

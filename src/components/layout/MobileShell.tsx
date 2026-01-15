@@ -53,32 +53,38 @@ export default function MobileShell({ children }: { children: React.ReactNode })
   const isLoginPage = pathname === "/login" || pathname === "/callback";
 
   return (
-    // 1. THE OUTER SHELL (Handles the Desktop "Aurora" Background)
-    <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
+    // 1. THE OUTER SHELL (Full-screen dark background with glow effects)
+    <div className="min-h-screen w-screen bg-black flex items-center justify-center p-4 md:p-8 relative overflow-hidden">
       
-      {/* Desktop Background Ambience (Hidden on Mobile) */}
-      <div className="hidden md:block absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-emerald-500/10 blur-[150px] rounded-full mix-blend-screen opacity-40 animate-pulse" />
-      <div className="hidden md:block absolute bottom-[-20%] right-[-10%] w-[800px] h-[800px] bg-indigo-500/10 blur-[150px] rounded-full mix-blend-screen opacity-30" />
+      {/* Desktop-only: Ambient glow effects */}
+      <div className="hidden lg:block absolute top-[-10%] left-[-5%] w-[600px] h-[600px] bg-emerald-500/15 blur-[120px] rounded-full mix-blend-screen opacity-50" />
+      <div className="hidden lg:block absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-500/15 blur-[120px] rounded-full mix-blend-screen opacity-40" />
 
-      {/* 2. THE SMART CONTAINER (The "Phone Frame") */}
-      {/* On Mobile: w-full h-full (Full Screen) */}
-      {/* On Desktop: w-[450px] h-[850px] (Centered App Window) */}
-      <div className="w-full h-[100dvh] md:h-[85vh] md:w-[420px] md:max-w-md md:rounded-[3rem] md:border-[8px] md:border-zinc-900 md:shadow-2xl bg-black relative flex flex-col overflow-hidden">
+      {/* 2. MOBILE FRAME - The "Device" Container */}
+      <div className="w-full h-[100dvh] md:w-[420px] md:h-[844px] md:rounded-[2.5rem] md:border-8 md:border-zinc-800 md:shadow-[0_0_60px_rgba(0,0,0,0.9),inset_0_0_20px_rgba(255,255,255,0.05)] bg-black relative flex flex-col overflow-hidden z-10">
         
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative z-10">
+        {/* Notch/Status Bar (Desktop only) */}
+        <div className="hidden md:flex h-8 bg-black px-6 items-center justify-between text-[10px] text-zinc-500 border-b border-zinc-900/50 relative z-20">
+          <span>FlowState</span>
+          <span className="absolute left-1/2 -translate-x-1/2">9:41</span>
+          <span>⚡︎</span>
+        </div>
+
+        {/* Main Content Scrollable Area */}
+        <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative z-10 w-full">
           {children}
         </main>
 
         {/* Bottom Navigation Dock (Hidden on Login) */}
         {!isLoginPage && (
-          <nav className="h-20 bg-zinc-900/90 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-2 shrink-0 z-50 pb-safe md:rounded-b-[2.5rem]">
+          <nav className="h-20 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800/50 flex items-center justify-around px-2 shrink-0 z-50 md:pb-4">
             <NavButton href="/dashboard" icon={<LayoutGrid size={24} />} label="Dash" isActive={pathname === "/dashboard"} />
             <NavButton href="/timer" icon={<Timer size={24} />} label="Focus" isActive={pathname === "/timer"} />
             <NavButton href="/tasks" icon={<CheckSquare size={24} />} label="Tasks" isActive={pathname === "/tasks"} />
             <NavButton href="/settings" icon={<Settings size={24} />} label="Settings" isActive={pathname === "/settings"} />
           </nav>
         )}
+
       </div>
     </div>
   );

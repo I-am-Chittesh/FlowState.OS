@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../supabase';
+import { getPressureIndex, getUrgencyTag, getDaysRemaining } from '../calculations';
 
 // --- TYPES ---
 export interface Goal {
@@ -7,6 +8,8 @@ export interface Goal {
   title: string;
   deadline: Date;
   color: string;
+  completedChapters?: number; // How many chapters done
+  totalChapters?: number; // Total chapters to study
 }
 
 export interface Task {
@@ -35,6 +38,10 @@ interface StudyState {
 
   goals: Goal[];
   tasks: Task[];
+  
+  // Pressure tracking
+  pressureByGoalId: { [goalId: string]: number }; // 0-100 pressure per goal
+  urgencyByGoalId: { [goalId: string]: 'critical' | 'urgent' | 'medium' | 'comfortable' };
 
   // --- ACTIONS ---
   startTimer: () => void;
@@ -47,6 +54,10 @@ interface StudyState {
 
   toggleSound: () => void;
   setSpotifyToken: (token: string | null) => void;
+  
+  // Pressure & progress actions
+  updateGoalProgress: (goalId: string, completed: number, total: number) => Promise<void>;
+  calculateAllPressures: () => void;
 
   // Database Actions
   fetchData: () => Promise<void>;
@@ -72,6 +83,8 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   totalTime: 0,
   goals: [],
   tasks: [],
+  pressureByGoalId: {},
+  urgencyByGoalId: {},
 
   // --- TIMER LOGIC ---
   startTimer: () => set({ isActive: true }),
@@ -85,6 +98,49 @@ export const useStudyStore = create<StudyState>((set, get) => ({
 
   toggleSound: () => set((state) => ({ isSoundOn: !state.isSoundOn })),
   setSpotifyToken: (token) => set({ spotifyToken: token }),
+
+  // Calculate pressure for all goals
+  calculateAllPressures: () => set((state) => {
+    const newPressures: { [key: string]: number } = {};
+    const newUrgencies: { [key: string]: 'critical' | 'urgent' | 'medium' | 'comfortable' } = {};
+
+    state.goals.forEach((goal) => {
+      const completed = goal.completedChapters || 0;
+      const total = goal.totalChapters || 1;
+      const daysLeft = getDaysRemaining(goal.deadline);
+      const totalDays = Math.max(1, Math.ceil((goal.deadline.getTime() - new Date(goal.deadline.getTime() - 365 * 24 * 60 * 60 * 1000).getTime()) / (1000 * 60 * 60 * 24)));
+
+      const pressure = getPressureIndex(completed, total, daysLeft, totalDays);
+      const urgency = getUrgencyTag(pressure, daysLeft);
+
+      newPressures[goal.id] = pressure;
+      newUrgencies[goal.id] = urgency;
+    });
+
+    return {
+      pressureByGoalId: newPressures,
+      urgencyByGoalId: newUrgencies,
+    };
+  }),
+
+  // Update chapter progress for a goal
+  updateGoalProgress: async (goalId: string, completed: number, total: number) => {
+    // Update local state
+    set((state) => ({
+      goals: state.goals.map((g) =>
+        g.id === goalId ? { ...g, completedChapters: completed, totalChapters: total } : g
+      ),
+    }));
+
+    // Update Supabase
+    await supabase
+      .from('goals')
+      .update({ completed_chapters: completed, total_chapters: total })
+      .eq('id', goalId);
+
+    // Recalculate pressure for this goal
+    get().calculateAllPressures();
+  },
 
   tick: () => set((state) => {
     if (state.timeLeft <= 0) {

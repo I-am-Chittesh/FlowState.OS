@@ -38,23 +38,27 @@ export function getPressureIndex(
 
 /**
  * Convert pressure index to human-readable urgency level
- * Based on days remaining:
- * - 3 days or less = CRITICAL (red)
- * - 4-15 days = URGENT (orange)
- * - 16+ days = COMFORTABLE (green)
  */
 export function getUrgencyTag(
   pressure: number,
   daysLeft: number
 ): 'critical' | 'urgent' | 'medium' | 'comfortable' {
-  if (daysLeft <= 3) {
+  // Critical: High pressure + not much time
+  if (pressure > 70 || (pressure > 50 && daysLeft <= 7)) {
     return 'critical';
   }
   
-  if (daysLeft <= 15) {
+  // Urgent: Moderate-high pressure or medium time left
+  if (pressure > 50 || daysLeft <= 14) {
     return 'urgent';
   }
   
+  // Medium: Some pressure or some time
+  if (pressure > 30 || daysLeft <= 30) {
+    return 'medium';
+  }
+  
+  // Comfortable: Low pressure and lots of time
   return 'comfortable';
 }
 
