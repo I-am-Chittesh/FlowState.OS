@@ -1,122 +1,167 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation"; // <--- Import Router
 import { useStudyStore } from "../../../lib/store/useStudyStore";
-import { CheckCircle2, Plus, Circle, Trash2, ArrowRight } from "lucide-react";
+import { Plus, CheckCircle, Circle, Trash2, Folder, PlayCircle } from "lucide-react"; // Added PlayCircle icon
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function TasksPage() {
-  // 1. Connect to the Brain
-  const { tasks, addTask, toggleTask, deleteTask, setTask } = useStudyStore();
-  const router = useRouter();
+  const router = useRouter(); // <--- Initialize Router
+  const { tasks, goals, fetchData, addTask, toggleTask, deleteTask, setActiveTask } = useStudyStore();
   
-  // Local state for the input box
-  const [inputValue, setInputValue] = useState("");
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
 
-  // Handler: Add a new task
-  const handleAdd = () => {
-    if (inputValue.trim()) {
-      addTask(inputValue);
-      setInputValue(""); // Clear the box
-    }
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+    await addTask(newTaskTitle, selectedGoalId);
+    setNewTaskTitle("");
   };
 
-  // Handler: Click text to "Focus" on this task
-  const handleFocus = (taskTitle: string) => {
-    setTask(taskTitle); // Update the Timer text
-    router.push("/timer"); // Jump to Timer page
+  // --- NEW: START TASK SESSION ---
+  const handleStartTask = (taskId: string, title: string) => {
+    setActiveTask(taskId, title); // Tell the store "This is the active task"
+    router.push("/timer");        // Go to Timer Page
   };
+
+  const getTasksForGoal = (goalId: string | null) => tasks.filter((t) => t.goalId === goalId);
+  const generalTasks = tasks.filter((t) => !t.goalId);
 
   return (
-    <div className="h-full flex flex-col p-6 space-y-6">
-      
-      {/* Header */}
+    <div className="h-full flex flex-col p-6 space-y-6 pb-24">
       <div className="space-y-1 mt-4">
-        <h2 className="text-zinc-500 font-medium text-sm uppercase tracking-wider">
-          Priorities
-        </h2>
-        <h1 className="text-3xl font-bold text-white tracking-tight">
-          Tasks
-        </h1>
+        <h2 className="text-zinc-500 font-medium text-sm uppercase tracking-wider">Action Plan</h2>
+        <h1 className="text-3xl font-bold text-white tracking-tight">Tasks</h1>
       </div>
 
-      {/* Input Area (The "Add" Bar) */}
-      <div className="flex gap-2">
+      {/* Input Area */}
+      <form onSubmit={handleAddTask} className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-2xl space-y-3">
         <input 
           type="text" 
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          placeholder="Add a new task..."
-          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600"
+          placeholder="What needs to be done?"
+          value={newTaskTitle}
+          onChange={(e) => setNewTaskTitle(e.target.value)}
+          className="w-full bg-transparent text-white placeholder:text-zinc-600 focus:outline-none text-lg font-medium"
         />
-        <button 
-          onClick={handleAdd}
-          className="bg-white text-black p-4 rounded-xl hover:bg-zinc-200 active:scale-95 transition-all"
-        >
-          <Plus size={24} />
-        </button>
-      </div>
+        <div className="flex items-center justify-between">
+          <select 
+            value={selectedGoalId || ""} 
+            onChange={(e) => setSelectedGoalId(e.target.value || null)}
+            className="bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs rounded-lg px-3 py-2 outline-none focus:border-emerald-500"
+          >
+            <option value="">📂 General (No Goal)</option>
+            {goals.map((g) => (
+              <option key={g.id} value={g.id}>🎯 {g.title}</option>
+            ))}
+          </select>
+          <button 
+            type="submit"
+            disabled={!newTaskTitle}
+            className="bg-emerald-500 hover:bg-emerald-400 text-black rounded-full p-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+      </form>
 
-      {/* The List */}
-      <div className="space-y-3 pb-20 overflow-y-auto">
-        {tasks.length === 0 && (
-          <div className="text-center text-zinc-600 py-10 text-sm">
-            No tasks yet. Time to plan.
+      {/* TASK LISTS */}
+      <div className="space-y-6 overflow-y-auto no-scrollbar">
+        {goals.map((goal) => {
+          const goalTasks = getTasksForGoal(goal.id);
+          return (
+            <div key={goal.id} className="space-y-2">
+              <div className="flex items-center gap-2 text-emerald-400 border-b border-zinc-800/50 pb-2">
+                <Folder size={16} />
+                <h3 className="text-sm font-bold uppercase tracking-wide">{goal.title}</h3>
+                <span className="text-[10px] text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded-full ml-auto">
+                  {new Date(goal.deadline).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {goalTasks.length === 0 && <p className="text-zinc-700 text-xs italic pl-6">No tasks yet.</p>}
+                <AnimatePresence>
+                  {goalTasks.map((task) => (
+                    <TaskItem 
+                      key={task.id} 
+                      task={task} 
+                      onToggle={() => toggleTask(task.id, !task.completed)}
+                      onDelete={() => deleteTask(task.id)}
+                      onStart={() => handleStartTask(task.id, task.title)} // <--- CONNECTED
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          );
+        })}
+
+        {generalTasks.length > 0 && (
+          <div className="space-y-2 pt-4">
+             <div className="flex items-center gap-2 text-zinc-500 border-b border-zinc-800/50 pb-2">
+                <Folder size={16} />
+                <h3 className="text-sm font-bold uppercase tracking-wide">General</h3>
+              </div>
+              <div className="space-y-2">
+                <AnimatePresence>
+                  {generalTasks.map((task) => (
+                    <TaskItem 
+                      key={task.id} 
+                      task={task} 
+                      onToggle={() => toggleTask(task.id, !task.completed)}
+                      onDelete={() => deleteTask(task.id)}
+                      onStart={() => handleStartTask(task.id, task.title)} // <--- CONNECTED
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
           </div>
         )}
-
-        {tasks.map((task) => (
-          <div 
-            key={task.id}
-            className="group flex items-center justify-between p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-all"
-          >
-            <div className="flex items-center gap-4 overflow-hidden">
-              {/* Checkbox */}
-              <button 
-                onClick={() => toggleTask(task.id)}
-                className="text-zinc-500 hover:text-emerald-500 transition-colors shrink-0"
-              >
-                {task.completed ? (
-                  <CheckCircle2 className="text-emerald-500" size={24} />
-                ) : (
-                  <Circle size={24} />
-                )}
-              </button>
-              
-              {/* Task Text (Click to Focus) */}
-              <span 
-                onClick={() => !task.completed && handleFocus(task.title)}
-                className={`text-sm font-medium truncate cursor-pointer select-none ${
-                  task.completed ? "text-zinc-600 line-through" : "text-zinc-200 hover:text-white"
-                }`}
-              >
-                {task.title}
-              </span>
-            </div>
-
-            {/* Actions (Delete or Focus Icon) */}
-            <div className="flex items-center gap-2">
-              {!task.completed && (
-                <button 
-                  onClick={() => handleFocus(task.title)}
-                  className="p-2 text-zinc-600 hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <ArrowRight size={18} />
-                </button>
-              )}
-              
-              <button 
-                onClick={() => deleteTask(task.id)}
-                className="p-2 text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          </div>
-        ))}
       </div>
-
     </div>
+  );
+}
+
+// Sub-component
+function TaskItem({ task, onToggle, onDelete, onStart }: { task: any, onToggle: () => void, onDelete: () => void, onStart: () => void }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0 }}
+      className="group flex items-center justify-between bg-zinc-900/30 border border-zinc-800/50 p-3 rounded-xl hover:bg-zinc-900 transition-colors"
+    >
+      <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
+        <button onClick={onToggle} className={`shrink-0 ${task.completed ? "text-emerald-500" : "text-zinc-600 hover:text-zinc-400"}`}>
+          {task.completed ? <CheckCircle size={20} /> : <Circle size={20} />}
+        </button>
+        
+        {/* CLICKABLE TEXT: Starts Timer */}
+        <span 
+          onClick={onStart}
+          className={`text-sm truncate cursor-pointer hover:text-emerald-400 transition-colors ${task.completed ? "text-zinc-600 line-through" : "text-zinc-200"}`}
+        >
+          {task.title}
+        </span>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        {/* Start Button (Visible on Hover) */}
+        {!task.completed && (
+           <button onClick={onStart} className="text-emerald-500/50 hover:text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity">
+             <PlayCircle size={16} />
+           </button>
+        )}
+        
+        <button onClick={onDelete} className="text-zinc-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </motion.div>
   );
 }

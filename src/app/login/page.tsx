@@ -23,23 +23,18 @@ export default function LoginPage() {
     damping: 30
   };
 
-  // --- FIXED GOOGLE LOGIC ---
-  const handleGoogleLogin = async () => {
-    // 1. HARDCODE YOUR VERCEL URL HERE
-    // IMPORTANT: No trailing slash at the end
-    const SITE_URL = "https://flowstate-os.vercel.app"; 
+  // ... inside LoginPage component ...
 
-    // Safety check to prevent errors if you forget to change it
-    if (SITE_URL.includes("YOUR-APP-NAME")) {
-      alert("DEV ERROR: You need to update the SITE_URL in login/page.tsx line 23!");
-      return;
-    }
+  const handleGoogleLogin = async () => {
+    // 1. DYNAMIC URL DETECTION
+    // This automatically grabs "http://localhost:3000" OR "https://your-app.vercel.app"
+    // depending on where you are currently running the code.
+    const SITE_URL = window.location.origin;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // This forces Google to send you back to your Vercel app, not the mail app
-        redirectTo: `${SITE_URL}/callback`,
+        redirectTo: `${SITE_URL}/callback`, // <--- Uses the current location
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
