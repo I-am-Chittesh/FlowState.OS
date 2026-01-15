@@ -3,14 +3,19 @@
 import { useEffect, useState } from "react";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
 import DeadlineCard from "../../../components/dashboard/DeadlineCard";
-import { Flame, Timer, Trophy, Quote } from "lucide-react";
+import { Flame, Timer, Trophy, Quote, Zap } from "lucide-react";
 
 export default function DashboardPage() {
-  const { totalTime, sessionsCompleted } = useStudyStore();
+  const { totalTime, sessionsCompleted, xp, level } = useStudyStore();
   const [greeting, setGreeting] = useState("Good Morning");
   const [quote, setQuote] = useState({ text: "Stay Hard.", author: "Goggins" });
 
-  // 1. The Quote Bank
+  // Level Logic
+  const xpForNextLevel = 500;
+  const currentLevelProgress = xp % xpForNextLevel;
+  const percentage = (currentLevelProgress / xpForNextLevel) * 100;
+
+  // Quote Bank
   const quotes = [
     { text: "We don't stop when we're tired. We stop when we're done.", author: "David Goggins" },
     { text: "He who has a why to live can bear almost any how.", author: "Nietzsche" },
@@ -25,19 +30,17 @@ export default function DashboardPage() {
   ];
 
   useEffect(() => {
-    // Set Greeting
     const hour = new Date().getHours();
     if (hour < 12) setGreeting("Good Morning");
     else if (hour < 18) setGreeting("Good Afternoon");
     else setGreeting("Good Evening");
 
-    // Set Random Quote
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
     setQuote(randomQuote);
   }, []);
 
   return (
-    <div className="h-full flex flex-col p-6 space-y-8">
+    <div className="h-full flex flex-col p-6 space-y-6">
       
       {/* Header */}
       <div className="space-y-1 mt-4">
@@ -47,6 +50,30 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold text-white tracking-tight">
           {greeting}, Chittesh.
         </h1>
+      </div>
+
+      {/* NEW: Level Progress Card */}
+      <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 p-5 rounded-2xl relative overflow-hidden">
+        <div className="flex justify-between items-end mb-2">
+          <div>
+            <div className="flex items-center gap-2 text-amber-500 mb-1">
+              <Trophy size={16} />
+              <span className="text-xs font-bold uppercase tracking-wider">Current Rank</span>
+            </div>
+            <span className="text-3xl font-bold text-white">Level {level}</span>
+          </div>
+          <div className="text-right">
+             <span className="text-xs text-zinc-400">{currentLevelProgress} / {xpForNextLevel} XP</span>
+          </div>
+        </div>
+        
+        {/* The Bar */}
+        <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-amber-500 transition-all duration-1000 ease-out"
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -83,7 +110,7 @@ export default function DashboardPage() {
         <DeadlineCard />
       </div>
 
-      {/* NEW: Motivation Footer */}
+      {/* Motivation Footer */}
       <div className="mt-auto bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-4 flex gap-3 items-center">
         <div className="p-2 bg-white/5 rounded-full shrink-0">
           <Quote size={16} className="text-zinc-400" />

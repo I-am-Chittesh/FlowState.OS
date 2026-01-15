@@ -16,12 +16,14 @@ interface StudyState {
   currentTask: string;
   isSoundOn: boolean;
   
-  // NEW: Spotify Auth Token
+  // Spotify Auth
   spotifyToken: string | null;
 
-  // Stats
+  // Stats & Gamification
   sessionsCompleted: number;
   totalTime: number;
+  xp: number;         // <--- NEW
+  level: number;      // <--- NEW
 
   // Exam Customization
   examName: string;
@@ -38,15 +40,11 @@ interface StudyState {
   setTask: (task: string) => void;
   setExamDetails: (name: string, date: Date) => void;
   
-  // Task Actions
   addTask: (title: string) => void;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
 
-  // Sound Action
   toggleSound: () => void;
-
-  // NEW: Spotify Action
   setSpotifyToken: (token: string | null) => void;
 }
 
@@ -59,9 +57,11 @@ export const useStudyStore = create<StudyState>()(
       isBreak: false,
       currentTask: "Deep Work",
       isSoundOn: false,
-      spotifyToken: null, // <--- The Missing Piece
+      spotifyToken: null,
       sessionsCompleted: 0,
       totalTime: 0,
+      xp: 0,          // Start at 0 XP
+      level: 1,       // Start at Level 1
       examName: "Finals",
       examDate: new Date(2026, 1, 15),
       tasks: [],
@@ -71,42 +71,62 @@ export const useStudyStore = create<StudyState>()(
       pauseTimer: () => set({ isActive: false }),
       resetTimer: () => set({ isActive: false, timeLeft: 25 * 60, isBreak: false }),
       setTask: (task) => set({ currentTask: task }),
-      
       setExamDetails: (name, date) => set({ examName: name, examDate: date }),
 
-      // --- Heartbeat ---
+      // --- Gamified Heartbeat ---
       tick: () => set((state) => {
         if (state.timeLeft <= 0) {
           const wasWorking = !state.isBreak;
+          
+          // XP LOGIC: 100 XP for a finished session
+          const xpGain = wasWorking ? 100 : 0;
+          const newXp = state.xp + xpGain;
+          // Level Up every 500 XP
+          const newLevel = Math.floor(newXp / 500) + 1;
+
           return { 
             isActive: false, 
             isBreak: wasWorking, 
             timeLeft: wasWorking ? 5 * 60 : 25 * 60,
             currentTask: wasWorking ? "Rest & Recover" : "Deep Work",
             sessionsCompleted: wasWorking ? state.sessionsCompleted + 1 : state.sessionsCompleted,
-            totalTime: wasWorking ? state.totalTime + 25 : state.totalTime
+            totalTime: wasWorking ? state.totalTime + 25 : state.totalTime,
+            xp: newXp,      // Update XP
+            level: newLevel // Update Level
           };
         }
         return { timeLeft: state.timeLeft - 1 };
       }),
 
-      // --- Task Logic ---
       addTask: (title) => set((state) => ({
         tasks: [...state.tasks, { id: Date.now().toString(), title, completed: false }]
       })),
 
-      toggleTask: (id) => set((state) => ({
-        tasks: state.tasks.map((t) => t.id === id ? { ...t, completed: !t.completed } : t)
-      })),
+      // --- Gamified Tasks ---
+      toggleTask: (id) => set((state) => {
+        // Find the task to see if we are checking or unchecking
+        const task = state.tasks.find((t) => t.id === id);
+        if (!task) return {};
+
+        const isCompleting = !task.completed;
+        // +50 XP for finishing, -50 XP if you uncheck it
+        const xpChange = isCompleting ? 50 : -50;
+        
+        const newXp = Math.max(0, state.xp + xpChange); // Don't go below 0
+        const newLevel = Math.floor(newXp / 500) + 1;
+
+        return {
+          tasks: state.tasks.map((t) => t.id === id ? { ...t, completed: !t.completed } : t),
+          xp: newXp,
+          level: newLevel
+        };
+      }),
 
       deleteTask: (id) => set((state) => ({
         tasks: state.tasks.filter((t) => t.id !== id)
       })),
 
-      // --- Sound Logic ---
       toggleSound: () => set((state) => ({ isSoundOn: !state.isSoundOn })),
-
-      // --- NEW: Spotify Logic ---
       setSpotifyToken: (token) => set({ spotifyToken: token }),
 
     }),
