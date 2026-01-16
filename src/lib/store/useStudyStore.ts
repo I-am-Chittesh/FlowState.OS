@@ -169,6 +169,24 @@ export const useStudyStore = create<StudyState>((set, get) => ({
         // 2. Update Supabase in background
         supabase.from('tasks').update({ is_completed: true }).eq('id', taskId).then();
         
+        // 3. Save profile stats (XP, level, sessions, time) to Supabase
+        const newSessions = state.sessionsCompleted + 1;
+        const newTotalTime = state.totalTime + 25;
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) {
+            supabase
+              .from('profiles')
+              .update({ 
+                xp: newXp, 
+                level: newLevel,
+                sessions_completed: newSessions,
+                total_time: newTotalTime
+              })
+              .eq('id', user.id)
+              .then();
+          }
+        });
+        
         return { 
           isActive: false, 
           isBreak: wasWorking, 
@@ -176,21 +194,40 @@ export const useStudyStore = create<StudyState>((set, get) => ({
           currentTask: "Rest & Recover",
           activeTaskId: null, // Clear the active task so next session is fresh
           tasks: updatedTasks, // Update the list
-          sessionsCompleted: state.sessionsCompleted + 1,
-          totalTime: state.totalTime + 25,
+          sessionsCompleted: newSessions,
+          totalTime: newTotalTime,
           xp: newXp,
           level: newLevel
         };
       }
 
       // Standard Timer Finish (No Task Linked)
+      const newSessions = wasWorking ? state.sessionsCompleted + 1 : state.sessionsCompleted;
+      const newTotalTime = wasWorking ? state.totalTime + 25 : state.totalTime;
+      
+      // Save profile stats to Supabase
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          supabase
+            .from('profiles')
+            .update({ 
+              xp: newXp, 
+              level: newLevel,
+              sessions_completed: newSessions,
+              total_time: newTotalTime
+            })
+            .eq('id', user.id)
+            .then();
+        }
+      });
+      
       return { 
         isActive: false, 
         isBreak: wasWorking, 
         timeLeft: wasWorking ? 5 * 60 : 25 * 60,
         currentTask: wasWorking ? "Rest & Recover" : "Deep Work",
-        sessionsCompleted: wasWorking ? state.sessionsCompleted + 1 : state.sessionsCompleted,
-        totalTime: wasWorking ? state.totalTime + 25 : state.totalTime,
+        sessionsCompleted: newSessions,
+        totalTime: newTotalTime,
         xp: newXp,
         level: newLevel
       };
@@ -209,7 +246,7 @@ export const useStudyStore = create<StudyState>((set, get) => ({
 
     set({
       goals: goalsData?.map(g => ({ ...g, deadline: new Date(g.deadline) })) || [],
-      tasks: tasksData || [],
+      tasks: tasksData?.map(t => ({ ...t, completed: t.is_completed })) || [],
       xp: profileData?.xp || 0,
       level: profileData?.level || 1,
       totalTime: profileData?.total_time || 0,
@@ -243,10 +280,24 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   toggleTask: async (id, completed) => {
     set((state) => ({ tasks: state.tasks.map((t) => t.id === id ? { ...t, completed } : t) }));
     await supabase.from('tasks').update({ is_completed: completed }).eq('id', id);
+    
     if (completed) {
       set((state) => {
         const newXp = state.xp + 50;
-        return { xp: newXp, level: Math.floor(newXp / 500) + 1 };
+        const newLevel = Math.floor(newXp / 500) + 1;
+        
+        // Persist XP to profile (async in background)
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) {
+            supabase
+              .from('profiles')
+              .update({ xp: newXp, level: newLevel })
+              .eq('id', user.id)
+              .then();
+          }
+        });
+        
+        return { xp: newXp, level: newLevel };
       });
     }
   },

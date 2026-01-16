@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
 import DeadlineCard from "../../../components/dashboard/DeadlineCard";
-import PressureGauge from "../../../components/dashboard/PressureGauge";
 import GoalListPreview from "../../../components/dashboard/GoalListPreview";
 import TasksPreview from "../../../components/dashboard/TasksPreview";
 import { Flame, Timer, Trophy, Quote, Zap } from "lucide-react";
@@ -123,13 +122,9 @@ export default function DashboardPage() {
             style={{ width: `${percentage}%` }}
           />
         </div>
-
         {/* Decorative Blur Background */}
         <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-amber-500/20 blur-[80px] opacity-30 rounded-full" />
       </div>
-
-      {/* Pressure Gauge - NEW */}
-      {priorityGoal && <PressureGauge pressure={priorityPressure} daysLeft={priorityDaysLeft} />}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4">
