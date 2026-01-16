@@ -31,7 +31,7 @@ export default function MobileShell({ children }: { children: React.ReactNode })
     });
 
     return () => subscription.unsubscribe();
-  }, [pathname, router]);
+  }, []);
 
   if (isLoading) {
     return (

@@ -18,10 +18,6 @@ export default function TasksPage() {
   const [syllabusText, setSyllabusText] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
@@ -67,6 +63,10 @@ export default function TasksPage() {
 
   const getTasksForGoal = (goalId: string | null) => tasks.filter((t) => t.goalId === goalId);
   const generalTasks = tasks.filter((t) => !t.goalId);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return (
     <div className="h-full flex flex-col p-6 space-y-6 pb-24 relative">
