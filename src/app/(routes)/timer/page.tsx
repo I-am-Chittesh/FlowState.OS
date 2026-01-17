@@ -10,7 +10,6 @@ import { Play, Pause, RotateCcw, Headphones, Music2, SkipForward } from "lucide-
 import confetti from "canvas-confetti";
 
 export default function TimerPage() {
-  const confettiShownRef = useRef(false);
   const { 
     timeLeft, 
     isActive,
@@ -30,7 +29,8 @@ export default function TimerPage() {
     startTimerSession,
     skipPhase,
     tick,
-    toggleSound
+    toggleSound,
+    sessionJustCompleted
   } = useStudyStore();
   
   useSpotifyPlayer(spotifyToken);
@@ -45,29 +45,16 @@ export default function TimerPage() {
   }, [isActive, timeLeft, tick]);
 
   // Confetti on session completion (all sets done)
-  // Trigger ONLY when user explicitly goes back to setup after completing all sets
   useEffect(() => {
-    if (isSetupMode && currentSet === 1 && !isActive) {
-      if (!confettiShownRef.current) {
-        confettiShownRef.current = true;
-        // Small delay to ensure UI has updated
-        const timer = setTimeout(() => {
-          confetti({
-            particleCount: 150,
-            spread: 80,
-            origin: { y: 0.6 },
-            colors: ['#10b981', '#34d399', '#059669', '#047857']
-          });
-        }, 100);
-        return () => clearTimeout(timer);
-      }
-    } else {
-      // Reset confetti flag when starting a new session
-      if (!isSetupMode) {
-        confettiShownRef.current = false;
-      }
+    if (sessionJustCompleted) {
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#10b981', '#34d399', '#059669', '#047857']
+      });
     }
-  }, [isSetupMode, currentSet, isActive]);
+  }, [sessionJustCompleted]);
 
   if (isSetupMode) {
     return <TimerSetup />;

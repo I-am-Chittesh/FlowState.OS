@@ -34,6 +34,7 @@ interface StudyState {
   totalSets: number;
   currentSet: number;
   isSetupMode: boolean; // Show config screen before starting
+  sessionJustCompleted: boolean; // Flag to trigger confetti only once per completion
 
   isSoundOn: boolean;
   
@@ -94,6 +95,7 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   totalSets: 4,
   currentSet: 1,
   isSetupMode: true, // Start with setup screen
+  sessionJustCompleted: false, // Track if session just finished
   
   isSoundOn: false,
   spotifyToken: null,
@@ -114,7 +116,8 @@ export const useStudyStore = create<StudyState>((set, get) => ({
     timeLeft: state.isBreak ? state.breakDuration : state.workDuration,
     isBreak: false,
     currentSet: 1,
-    isSetupMode: true
+    isSetupMode: true,
+    sessionJustCompleted: false
   })),
   
   setTask: (task) => set({ currentTask: task }),
@@ -138,7 +141,8 @@ export const useStudyStore = create<StudyState>((set, get) => ({
     isActive: true,
     timeLeft: state.workDuration,
     isBreak: false,
-    currentSet: 1
+    currentSet: 1,
+    sessionJustCompleted: false
   })),
 
   skipPhase: () => set((state) => {
@@ -328,7 +332,8 @@ export const useStudyStore = create<StudyState>((set, get) => ({
           timeLeft: state.workDuration,
           currentSet: 1,
           isSetupMode: true, // Go back to setup after completion
-          currentTask: "Deep Work"
+          currentTask: "Deep Work",
+          sessionJustCompleted: true
         };
       }
     }
