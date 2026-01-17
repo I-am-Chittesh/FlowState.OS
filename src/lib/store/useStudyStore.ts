@@ -28,6 +28,13 @@ interface StudyState {
   currentTask: string;
   activeTaskId: string | null; // <--- NEW: Tracks the ID of the running task
 
+  // Timer Configuration
+  workDuration: number; // in seconds
+  breakDuration: number; // in seconds
+  totalSets: number;
+  currentSet: number;
+  isSetupMode: boolean; // Show config screen before starting
+
   isSoundOn: boolean;
   
   spotifyToken: string | null;
@@ -48,9 +55,15 @@ interface StudyState {
   pauseTimer: () => void;
   resetTimer: () => void;
   tick: () => void;
+  skipPhase: () => void; // Skip to next phase
   
   setTask: (task: string) => void;
   setActiveTask: (id: string | null, title: string) => void; // <--- NEW
+
+  // Timer Configuration
+  setTimerConfig: (workDuration: number, breakDuration: number, totalSets: number) => void;
+  setSetupMode: (isSetup: boolean) => void;
+  startTimerSession: () => void; // Start from config
 
   toggleSound: () => void;
   setSpotifyToken: (token: string | null) => void;
@@ -75,6 +88,13 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   isBreak: false,
   currentTask: "Deep Work",
   activeTaskId: null, // Default: No specific task linked
+  
+  workDuration: 25 * 60, // 25 minutes default
+  breakDuration: 5 * 60, // 5 minutes default
+  totalSets: 4,
+  currentSet: 1,
+  isSetupMode: true, // Start with setup screen
+  
   isSoundOn: false,
   spotifyToken: null,
   xp: 0,
@@ -89,12 +109,70 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   // --- TIMER LOGIC ---
   startTimer: () => set({ isActive: true }),
   pauseTimer: () => set({ isActive: false }),
-  resetTimer: () => set({ isActive: false, timeLeft: 25 * 60, isBreak: false }),
+  resetTimer: () => set((state) => ({ 
+    isActive: false, 
+    timeLeft: state.isBreak ? state.breakDuration : state.workDuration,
+    isBreak: false,
+    currentSet: 1,
+    isSetupMode: true
+  })),
   
   setTask: (task) => set({ currentTask: task }),
   
   // NEW: Link a specific task to the timer
   setActiveTask: (id, title) => set({ activeTaskId: id, currentTask: title }),
+
+  // Timer Configuration
+  setTimerConfig: (workDuration, breakDuration, totalSets) => 
+    set({ 
+      workDuration, 
+      breakDuration, 
+      totalSets,
+      timeLeft: workDuration
+    }),
+
+  setSetupMode: (isSetup) => set({ isSetupMode: isSetup }),
+
+  startTimerSession: () => set((state) => ({
+    isSetupMode: false,
+    isActive: true,
+    timeLeft: state.workDuration,
+    isBreak: false,
+    currentSet: 1
+  })),
+
+  skipPhase: () => set((state) => {
+    if (state.isBreak) {
+      // Break is done, go to next work phase or setup
+      if (state.currentSet < state.totalSets) {
+        return {
+          isBreak: false,
+          timeLeft: state.workDuration,
+          currentSet: state.currentSet + 1,
+          currentTask: "Deep Work",
+          isActive: true
+        };
+      } else {
+        // All sets done
+        return {
+          isBreak: false,
+          timeLeft: state.workDuration,
+          currentSet: 1,
+          isSetupMode: true,
+          currentTask: "Deep Work",
+          isActive: false
+        };
+      }
+    } else {
+      // Work is done, go to break
+      return {
+        isBreak: true,
+        timeLeft: state.breakDuration,
+        currentTask: "Rest & Recover",
+        isActive: true
+      };
+    }
+  }),
 
   toggleSound: () => set((state) => ({ isSoundOn: !state.isSoundOn })),
   setSpotifyToken: (token) => set({ spotifyToken: token }),
@@ -143,35 +221,36 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   },
 
   tick: () => set((state) => {
-    if (state.timeLeft <= 0) {
-      const wasWorking = !state.isBreak;
-      
-      // XP Calculation
-      // 100 XP for Session + 50 XP if a Task was completed
-      let xpGain = wasWorking ? 100 : 0;
-      if (wasWorking && state.activeTaskId) {
-        xpGain += 50; // Bonus for finishing a specific task
+    // Decrement time
+    if (state.timeLeft > 0) {
+      return { timeLeft: state.timeLeft - 1 };
+    }
+
+    // When time reaches 0
+    const wasWorking = !state.isBreak;
+    
+    if (wasWorking) {
+      // Finished a work session
+      let xpGain = 100;
+      if (state.activeTaskId) {
+        xpGain += 50; // Bonus for task completion
       }
 
       const newXp = state.xp + xpGain;
       const newLevel = Math.floor(newXp / 500) + 1;
 
-      // AUTO-COMPLETE LOGIC
-      // If we were working on a specific task, mark it as done!
-      if (wasWorking && state.activeTaskId) {
+      // Update task if linked
+      if (state.activeTaskId) {
         const taskId = state.activeTaskId;
-        
-        // 1. Update Local State immediately
         const updatedTasks = state.tasks.map(t => 
           t.id === taskId ? { ...t, completed: true } : t
         );
         
-        // 2. Update Supabase in background
         supabase.from('tasks').update({ is_completed: true }).eq('id', taskId).then();
         
-        // 3. Save profile stats (XP, level, sessions, time) to Supabase
         const newSessions = state.sessionsCompleted + 1;
-        const newTotalTime = state.totalTime + 25;
+        const newTotalTime = state.totalTime + Math.floor(state.workDuration / 60);
+        
         supabase.auth.getUser().then(({ data: { user } }) => {
           if (user) {
             supabase
@@ -186,14 +265,14 @@ export const useStudyStore = create<StudyState>((set, get) => ({
               .then();
           }
         });
-        
+
         return { 
-          isActive: false, 
-          isBreak: wasWorking, 
-          timeLeft: wasWorking ? 5 * 60 : 25 * 60,
+          isActive: true,
+          isBreak: true, 
+          timeLeft: state.breakDuration,
           currentTask: "Rest & Recover",
-          activeTaskId: null, // Clear the active task so next session is fresh
-          tasks: updatedTasks, // Update the list
+          activeTaskId: null,
+          tasks: updatedTasks,
           sessionsCompleted: newSessions,
           totalTime: newTotalTime,
           xp: newXp,
@@ -201,11 +280,10 @@ export const useStudyStore = create<StudyState>((set, get) => ({
         };
       }
 
-      // Standard Timer Finish (No Task Linked)
-      const newSessions = wasWorking ? state.sessionsCompleted + 1 : state.sessionsCompleted;
-      const newTotalTime = wasWorking ? state.totalTime + 25 : state.totalTime;
+      // Standard work session (no task)
+      const newSessions = state.sessionsCompleted + 1;
+      const newTotalTime = state.totalTime + Math.floor(state.workDuration / 60);
       
-      // Save profile stats to Supabase
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user) {
           supabase
@@ -222,17 +300,38 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       });
       
       return { 
-        isActive: false, 
-        isBreak: wasWorking, 
-        timeLeft: wasWorking ? 5 * 60 : 25 * 60,
-        currentTask: wasWorking ? "Rest & Recover" : "Deep Work",
+        isActive: true,
+        isBreak: true, 
+        timeLeft: state.breakDuration,
+        currentTask: "Rest & Recover",
         sessionsCompleted: newSessions,
         totalTime: newTotalTime,
         xp: newXp,
         level: newLevel
       };
+    } else {
+      // Finished a break session
+      if (state.currentSet < state.totalSets) {
+        // More sets to go
+        return {
+          isActive: true,
+          isBreak: false,
+          timeLeft: state.workDuration,
+          currentSet: state.currentSet + 1,
+          currentTask: "Deep Work"
+        };
+      } else {
+        // All sets completed! Stop and go back to setup
+        return {
+          isActive: false,
+          isBreak: false,
+          timeLeft: state.workDuration,
+          currentSet: 1,
+          isSetupMode: true, // Go back to setup after completion
+          currentTask: "Deep Work"
+        };
+      }
     }
-    return { timeLeft: state.timeLeft - 1 };
   }),
 
   // --- DATABASE ACTIONS ---
