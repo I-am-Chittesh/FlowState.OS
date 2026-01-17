@@ -11,6 +11,7 @@ export default function LoginPage() {
   
   // State
   const [isSignUp, setIsSignUp] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -52,19 +53,39 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: { full_name: name }
+          }
         });
         if (error) throw error;
+
+        // Create profile entry with the name
+        if (data.user) {
+          await supabase.from('profiles').insert({
+            id: data.user.id,
+            full_name: name,
+            xp: 0,
+            level: 1,
+            total_time: 0,
+            sessions_completed: 0
+          });
+        }
+        
         alert("Check your email for the confirmation link!");
+        setIsSignUp(false);
+        setName("");
+        setEmail("");
+        setPassword("");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
-        router.push("/timer");
+        router.push("/dashboard");
       }
     } catch (error: any) {
       setErrorMsg(error.message || "Something went wrong");
@@ -109,6 +130,28 @@ export default function LoginPage() {
 
         {/* The Form */}
         <form onSubmit={handleEmailLogin} className="space-y-4">
+          
+          {isSignUp && (
+            <div className="relative group">
+              <motion.div 
+                animate={focusedField === "name" ? { scale: 1.02 } : { scale: 1 }}
+                transition={springTransition}
+                className={`relative flex items-center bg-zinc-900/50 border ${focusedField === "name" ? "border-emerald-500/50 ring-2 ring-emerald-500/10" : "border-zinc-800"} rounded-2xl p-4 transition-colors duration-300`}
+              >
+                <Mail size={20} className={`mr-3 ${focusedField === "name" ? "text-emerald-400" : "text-zinc-500"} transition-colors`} />
+                <input 
+                  type="text" 
+                  required={isSignUp}
+                  placeholder="Full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onFocus={() => setFocusedField("name")}
+                  onBlur={() => setFocusedField(null)}
+                  className="bg-transparent w-full outline-none text-sm placeholder:text-zinc-600 text-white"
+                />
+              </motion.div>
+            </div>
+          )}
           
           <div className="relative group">
             <motion.div 

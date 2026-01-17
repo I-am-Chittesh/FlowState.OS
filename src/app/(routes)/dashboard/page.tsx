@@ -23,6 +23,7 @@ export default function DashboardPage() {
     deleteGoal,
     pressureByGoalId,
     calculateAllPressures,
+    userName,
   } = useStudyStore();
 
   const [greeting, setGreeting] = useState("Good Morning");
@@ -93,7 +94,7 @@ export default function DashboardPage() {
           FlowState.os
         </h2>
         <h1 className="text-3xl font-bold text-white tracking-tight">
-          {greeting}, Chittesh.
+          {greeting}, {userName || "User"}.
         </h1>
       </div>
 
