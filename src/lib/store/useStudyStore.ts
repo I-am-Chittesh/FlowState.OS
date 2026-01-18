@@ -352,7 +352,7 @@ export const useStudyStore = create<StudyState>((set, get) => ({
 
     set({
       goals: goalsData?.map(g => ({ ...g, deadline: new Date(g.deadline) })) || [],
-      tasks: tasksData?.map(t => ({ ...t, completed: t.is_completed })) || [],
+      tasks: tasksData?.map(t => ({ id: t.id, title: t.title, completed: t.is_completed, goalId: t.goal_id })) || [],
       xp: profileData?.xp || 0,
       level: profileData?.level || 1,
       totalTime: profileData?.total_time || 0,
