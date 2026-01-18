@@ -39,6 +39,7 @@ interface StudyState {
   isSoundOn: boolean;
   
   spotifyToken: string | null;
+  userName: string | null;
   xp: number;
   level: number;
   sessionsCompleted: number;
@@ -99,6 +100,7 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   
   isSoundOn: false,
   spotifyToken: null,
+  userName: null,
   xp: 0,
   level: 1,
   sessionsCompleted: 0,
@@ -354,7 +356,8 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       xp: profileData?.xp || 0,
       level: profileData?.level || 1,
       totalTime: profileData?.total_time || 0,
-      sessionsCompleted: profileData?.sessions_completed || 0
+      sessionsCompleted: profileData?.sessions_completed || 0,
+      userName: profileData?.full_name || user.user_metadata?.full_name || "User"
     });
   },
 

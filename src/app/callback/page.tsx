@@ -13,15 +13,20 @@ export default function CallbackPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         console.log("Session found immediately, redirecting...");
-        router.replace("/timer");
+        // Check if this is a new Google sign-in and create/update profile
+        await ensureProfileExists(session);
+        router.replace("/dashboard");
         return;
       }
 
       // 2. Event Listener: Catch the login as it happens
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         console.log("Auth Event Detected:", event);
         if (session || event === "SIGNED_IN") {
-          router.replace("/timer");
+          if (session) {
+            await ensureProfileExists(session);
+          }
+          router.replace("/dashboard");
         }
       });
 
@@ -35,6 +40,30 @@ export default function CallbackPage() {
         subscription.unsubscribe();
         clearTimeout(timeout);
       };
+    };
+
+    const ensureProfileExists = async (session: any) => {
+      if (!session.user) return;
+
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      // If profile doesn't exist (new user), create it
+      if (!existingProfile) {
+        const fullName = session.user.user_metadata?.full_name || session.user.email || "User";
+        await supabase.from('profiles').insert({
+          id: session.user.id,
+          full_name: fullName,
+          xp: 0,
+          level: 1,
+          total_time: 0,
+          sessions_completed: 0
+        });
+      }
     };
 
     handleAuth();
