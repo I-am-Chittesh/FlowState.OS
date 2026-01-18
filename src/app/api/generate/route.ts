@@ -22,9 +22,15 @@ export async function POST(req: Request) {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Use your working model
 
     const prompt = `
-      You are an expert academic planner.
-      SYLLABUS TEXT: "${body.syllabus}"
-      Return ONLY a raw JSON array of strings.
+      You are a task name extractor.
+      TEXT: "${body.syllabus}"
+      
+      Extract ONLY the topic/subject names that the user mentions.
+      Do NOT generate new tasks. Do NOT create learning objectives.
+      Just extract the exact topic names provided.
+      
+      Return ONLY a raw JSON array of strings with the extracted topic names.
+      Example: If input is "mod 1: AI and Robo, XYZ, Sensors" return ["AI and Robo", "XYZ", "Sensors"]
     `;
 
     console.log("Sending request to Google..."); // Spy Log 4
