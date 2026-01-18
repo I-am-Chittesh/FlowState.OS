@@ -205,6 +205,20 @@ export default function TasksPage() {
               className="w-full h-32 bg-black/50 border border-zinc-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-indigo-500 mb-4 resize-none"
             />
 
+            <div className="mb-4">
+              <label className="block text-xs text-zinc-400 font-medium mb-2">Assign to Goal</label>
+              <select 
+                value={selectedGoalId || ""} 
+                onChange={(e) => setSelectedGoalId(e.target.value || null)}
+                className="w-full bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm rounded-lg px-3 py-2 outline-none focus:border-indigo-500"
+              >
+                <option value="">📂 General</option>
+                {goals.map((g) => (
+                  <option key={g.id} value={g.id}>🎯 {g.title}</option>
+                ))}
+              </select>
+            </div>
+
             <button 
               onClick={handleSyllabusImport}
               disabled={!syllabusText || isAiLoading}
