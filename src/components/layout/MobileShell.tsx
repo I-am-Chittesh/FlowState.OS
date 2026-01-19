@@ -1,47 +1,11 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { LayoutGrid, Timer, CheckSquare, Settings } from "lucide-react";
-import { supabase } from "../../lib/supabase"; 
 
 export default function MobileShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // --- AUTH LOGIC (Keep existing logic) ---
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-      }
-      setIsLoading(false);
-    };
-    checkAuth();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') setIsAuthenticated(false);
-      else if (session) setIsAuthenticated(true);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center z-50">
-        <div className="w-16 h-16 bg-zinc-900 rounded-2xl animate-pulse flex items-center justify-center border border-zinc-800">
-           <div className="w-8 h-8 bg-emerald-500/20 rounded-full animate-ping" />
-        </div>
-      </div>
-    );
-  }
 
   const isLoginPage = pathname === "/login" || pathname === "/callback";
 

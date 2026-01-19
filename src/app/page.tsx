@@ -1,31 +1,45 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
 
 export default function RootPage() {
   const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // Check for existing session first
-    const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.push("/dashboard");
-        return;
+    // Register service worker for PWA
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch((err) => {
+        console.log("SW registration failed:", err);
+      });
+    }
+
+    // Check for existing session
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          router.push("/dashboard");
+        } else {
+          router.push("/login");
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
+        router.push("/login");
+      } finally {
+        setIsChecking(false);
       }
     };
 
-    // Check initial session
-    checkInitialSession();
+    checkAuth();
 
-    // Then listen for auth state changes
+    // Also listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (session) {
-          router.push("/dashboard");
-        } else if (event === "SIGNED_OUT") {
+        if (event === "SIGNED_OUT") {
           router.push("/login");
         }
       }
