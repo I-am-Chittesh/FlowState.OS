@@ -27,10 +27,17 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  metadataBase: new URL("https://flowstate.app"),
   icons: {
     icon: "/icon.png",
     apple: "/icon.png",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "apple-mobile-web-app-title": "FlowState",
+    "application-name": "FlowState",
+    "theme-color": "#000000",
   },
 };
 
@@ -41,17 +48,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="FlowState" />
-        <meta name="application-name" content="FlowState" />
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" type="image/png" href="/icon.png" />
-        <link rel="apple-touch-icon" href="/icon.png" />
-        <meta name="theme-color" content="#000000" />
-      </head>
       <body className={`${inter.className} bg-black text-white antialiased`}>
         <MobileShell>{children}</MobileShell>
       </body>
