@@ -8,17 +8,32 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuthAndRedirect = async () => {
+    // Check for existing session first
+    const checkInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (session) {
         router.push("/dashboard");
-      } else {
-        router.push("/login");
+        return;
       }
     };
 
-    checkAuthAndRedirect();
+    // Check initial session
+    checkInitialSession();
+
+    // Then listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session) {
+          router.push("/dashboard");
+        } else if (event === "SIGNED_OUT") {
+          router.push("/login");
+        }
+      }
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, [router]);
 
   // Show loading screen while checking auth
