@@ -28,8 +28,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: "/icon-192.svg",
+    apple: "/icon-192.svg",
   },
   other: {
     "mobile-web-app-capable": "yes",
