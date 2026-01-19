@@ -130,6 +130,11 @@ export default function SettingsPage() {
         <ChevronRight size={16} />
       </button>
 
+      {/* Author Note */}
+      <div className="text-center pt-4 border-t border-zinc-900/50">
+        <p className="text-zinc-600 text-xs">Made for my Pookies❤️</p>
+      </div>
+
     </div>
   );
 }
