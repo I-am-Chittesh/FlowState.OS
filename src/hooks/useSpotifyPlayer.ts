@@ -5,68 +5,70 @@ export const useSpotifyPlayer = (token: string | null) => {
   const { setNowPlaying, setIsPlaying } = useSpotifyStore();
 
   useEffect(() => {
-    // Safety Check: If no token, don't start
-    if (!token) return;
+    // Safety: Don't run on server or without token
+    if (!token || typeof window === 'undefined' || typeof document === 'undefined') return;
 
-    let pollInterval: NodeJS.Timeout;
+    let pollInterval: NodeJS.Timeout | undefined;
     let player: any = null;
+    let script: HTMLScriptElement | null = null;
 
-    // --- APPROACH 1: SPOTIFY WEB PLAYBACK SDK ---
-    const script = document.createElement("script");
-    script.src = "https://sdk.scdn.co/spotify-player.js";
-    script.async = true;
-    document.body.appendChild(script);
+    // Load and setup Spotify SDK
+    try {
+      script = document.createElement("script");
+      script.src = "https://sdk.scdn.co/spotify-player.js";
+      script.async = true;
+      document.body.appendChild(script);
 
-    window.onSpotifyWebPlaybackSDKReady = () => {
-      try {
-        player = new window.Spotify.Player({
-          name: 'FlowState.os',
-          getOAuthToken: (cb: any) => { cb(token); },
-          volume: 0.5
-        });
+      (window as any).onSpotifyWebPlaybackSDKReady = () => {
+        try {
+          player = new (window as any).Spotify.Player({
+            name: 'FlowState.os',
+            getOAuthToken: (cb: any) => { cb(token); },
+            volume: 0.5
+          });
 
-        // Device Ready
-        player.addListener('ready', ({ device_id }: any) => {
-          console.log('FlowState ready with device:', device_id);
-        });
+          player.addListener('ready', ({ device_id }: any) => {
+            console.log('FlowState ready with device:', device_id);
+          });
 
-        // Track Changes
-        player.addListener('player_state_changed', (state: any) => {
-          if (!state) return;
+          player.addListener('player_state_changed', (state: any) => {
+            if (!state) return;
+            const track = state.track_window.current_track;
+            if (track) {
+              setNowPlaying(
+                track.name,
+                track.artists[0]?.name || "Unknown",
+                track.album.images[0]?.url || "",
+                !state.paused
+              );
+              setIsPlaying(!state.paused);
+            }
+          });
 
-          const track = state.track_window.current_track;
-          if (track) {
-            setNowPlaying(
-              track.name,
-              track.artists[0]?.name || "Unknown",
-              track.album.images[0]?.url || "",
-              !state.paused
-            );
-            setIsPlaying(!state.paused);
-          }
-        });
+          player.addListener('initialization_error', ({ message }: any) => {
+            console.error('Spotify init error:', message);
+          });
 
-        // Errors
-        player.addListener('initialization_error', ({ message }: any) => {
-          console.error('Initialization error:', message);
-        });
+          player.addListener('authentication_error', ({ message }: any) => {
+            console.error('Spotify auth error:', message);
+          });
 
-        player.addListener('authentication_error', ({ message }: any) => {
-          console.error('Authentication error:', message);
-        });
+          player.addListener('account_error', ({ message }: any) => {
+            console.error('Spotify account error:', message);
+          });
 
-        player.addListener('account_error', ({ message }: any) => {
-          console.error('Account error:', message);
-        });
+          player.connect();
+        } catch (err) {
+          console.error('Failed to initialize Spotify player:', err);
+        }
+      };
+    } catch (err) {
+      console.error('Failed to load Spotify SDK:', err);
+    }
 
-        player.connect();
-      } catch (err) {
-        console.error('Player initialization failed:', err);
-      }
-    };
-
-    // --- APPROACH 2: POLLING API (Fallback) ---
+    // Fallback: Poll for current track every 2 seconds
     const pollCurrentTrack = async () => {
+      if (!token) return;
       try {
         const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -78,7 +80,6 @@ export const useSpotifyPlayer = (token: string | null) => {
         }
 
         const data = await response.json();
-        
         if (data && data.item) {
           setNowPlaying(
             data.item.name,
@@ -87,33 +88,32 @@ export const useSpotifyPlayer = (token: string | null) => {
             data.is_playing || false
           );
           setIsPlaying(data.is_playing || false);
-        } else {
-          setNowPlaying("Not Playing", "Spotify", "", false);
         }
       } catch (err) {
-        console.error('Polling error:', err);
+        console.debug('Spotify poll error:', err);
       }
     };
 
-    // Start polling every 2 seconds
     pollInterval = setInterval(pollCurrentTrack, 2000);
-    
-    // Initial poll
     pollCurrentTrack();
 
+    // Cleanup
     return () => {
-      clearInterval(pollInterval);
+      if (pollInterval) clearInterval(pollInterval);
       if (player) {
-        player.disconnect();
+        try {
+          player.disconnect();
+        } catch (e) {
+          // Ignore
+        }
       }
-      document.body.removeChild(script);
-    };
-  }, [token, setNowPlaying, setIsPlaying]);
-};
-
-    // Cleanup: Remove script if component dies (optional)
-    return () => {
-      // Logic to disconnect player if needed
+      if (script?.parentNode) {
+        try {
+          script.parentNode.removeChild(script);
+        } catch (e) {
+          // Ignore
+        }
+      }
     };
   }, [token, setNowPlaying, setIsPlaying]);
 };

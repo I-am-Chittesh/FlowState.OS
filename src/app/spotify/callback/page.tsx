@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
 
-export default function SpotifyCallback() {
+function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setSpotifyToken } = useStudyStore();
@@ -60,5 +61,20 @@ export default function SpotifyCallback() {
         <p className="text-zinc-500 text-sm">This window will close automatically</p>
       </div>
     </div>
+  );
+}
+
+export default function SpotifyCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen bg-black flex flex-col items-center justify-center text-white">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-2 border-[#1DB954] border-t-transparent rounded-full animate-spin mx-auto" />
+          <h1 className="text-lg font-semibold">Loading...</h1>
+        </div>
+      </div>
+    }>
+      <CallbackContent />
+    </Suspense>
   );
 }

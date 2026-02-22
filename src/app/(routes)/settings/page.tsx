@@ -6,12 +6,6 @@ import { useStudyStore } from "../../../lib/store/useStudyStore";
 import { supabase } from "../../../lib/supabase"; 
 import { Settings, Calendar, Plus, LogOut, Volume2, User, ChevronRight, Trash2, Music, LogIn, LogOut as DisconnectIcon } from "lucide-react";
 
-declare global {
-  interface Window {
-    spotifyAuthWindow?: Window;
-  }
-}
-
 // Spotify OAuth Config
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID || "";
 const REDIRECT_URI = typeof window !== "undefined" ? `${window.location.origin}/spotify/callback` : "http://localhost:3000/spotify/callback";
