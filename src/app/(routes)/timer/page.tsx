@@ -74,7 +74,7 @@ export default function TimerPage() {
   }
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-3 space-y-4 relative">
+    <div className="h-full flex items-center justify-center p-3 relative">
       
       {/* Dynamic Background: Pulse when active */}
       {isActive && (
@@ -85,83 +85,89 @@ export default function TimerPage() {
         }`} />
       )}
 
-      {/* Header */}
-      <div className="text-center space-y-0.5 z-10">
-        <h2 className="text-zinc-500 text-xs tracking-widest uppercase">
-          {isBreak ? "Time to Rest" : activeTaskId ? "Working on Task" : "Focus Time"}
-        </h2>
-        <h1 className="text-white text-sm font-medium px-3 truncate max-w-[280px]">
-          {currentTask}
-        </h1>
-      </div>
-
-      {/* Timer Circle */}
-      <div className="relative z-10 scale-75">
-        <TimerCircle
-          timeLeft={timeLeft}
-          isBreak={isBreak}
-          isActive={isActive}
-          currentSet={currentSet}
-          totalSets={totalSets}
-          workDuration={workDuration}
-          breakDuration={breakDuration}
-        />
-      </div>
-
-      {/* Controls Row */}
-      <div className="flex items-center gap-3 z-10">
+      {/* Timer Container - Shifts left when player opens on desktop */}
+      <div className={`flex flex-col items-center justify-center space-y-4 transition-all duration-300 ${
+        showSpotifyDeck && !isMobile ? "-translate-x-32" : ""
+      }`}>
         
-        {/* Reset */}
-        <button 
-          onClick={resetTimer}
-          className="p-2.5 rounded-full text-zinc-400 hover:bg-zinc-800 transition-all active:scale-95 hover:text-zinc-200"
-          title="Reset timer"
-        >
-          <RotateCcw size={20} />
-        </button>
+        {/* Header */}
+        <div className="text-center space-y-0.5 z-10">
+          <h2 className="text-zinc-500 text-xs tracking-widest uppercase">
+            {isBreak ? "Time to Rest" : activeTaskId ? "Working on Task" : "Focus Time"}
+          </h2>
+          <h1 className="text-white text-sm font-medium px-3 truncate max-w-[280px]">
+            {currentTask}
+          </h1>
+        </div>
 
-        {/* Play/Pause Main Button */}
-        <button 
-          onClick={isActive ? pauseTimer : startTimer}
-          className={`p-6 rounded-full transition-all active:scale-95 shadow-2xl ${
-            isActive 
-              ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20" 
-              : isBreak
-              ? "bg-blue-500 text-white hover:bg-blue-400"
-              : "bg-emerald-500 text-black hover:bg-emerald-400"
-          }`}
-          title={isActive ? "Pause" : "Start"}
-        >
-          {isActive ? (
-            <Pause size={24} fill="currentColor" />
-          ) : (
-            <Play size={24} fill="currentColor" />
-          )}
-        </button>
+        {/* Timer Circle */}
+        <div className="relative z-10 scale-75">
+          <TimerCircle
+            timeLeft={timeLeft}
+            isBreak={isBreak}
+            isActive={isActive}
+            currentSet={currentSet}
+            totalSets={totalSets}
+            workDuration={workDuration}
+            breakDuration={breakDuration}
+          />
+        </div>
 
-        {/* Skip to break/next set */}
-        <button 
-          onClick={skipPhase}
-          className="p-2.5 rounded-full text-zinc-400 hover:bg-zinc-800 transition-all active:scale-95 hover:text-zinc-200"
-          title="Skip phase"
-        >
-          <SkipForward size={20} />
-        </button>
+        {/* Controls Row */}
+        <div className="flex items-center gap-3 z-10">
+          
+          {/* Reset */}
+          <button 
+            onClick={resetTimer}
+            className="p-2.5 rounded-full text-zinc-400 hover:bg-zinc-800 transition-all active:scale-95 hover:text-zinc-200"
+            title="Reset timer"
+          >
+            <RotateCcw size={20} />
+          </button>
 
-      </div>
+          {/* Play/Pause Main Button */}
+          <button 
+            onClick={isActive ? pauseTimer : startTimer}
+            className={`p-6 rounded-full transition-all active:scale-95 shadow-2xl ${
+              isActive 
+                ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20" 
+                : isBreak
+                ? "bg-blue-500 text-white hover:bg-blue-400"
+                : "bg-emerald-500 text-black hover:bg-emerald-400"
+            }`}
+            title={isActive ? "Pause" : "Start"}
+          >
+            {isActive ? (
+              <Pause size={24} fill="currentColor" />
+            ) : (
+              <Play size={24} fill="currentColor" />
+            )}
+          </button>
 
-      {/* Sound & Spotify Controls */}
-      <div className="flex items-center gap-2 z-10">
-        {/* Spotify Music Toggle */}
-        <button 
-          onClick={() => setShowSpotifyDeck(!showSpotifyDeck)}
-          className={`p-2.5 rounded-full transition-all active:scale-95 ${
-            spotifyToken && showSpotifyDeck ? "text-[#1DB954] bg-[#1DB954]/10 shadow-lg shadow-[#1DB954]/20" : "text-zinc-400 hover:bg-zinc-800"
-          }`}
-          title="Spotify Music"
-        >
-          <Headphones size={20} />
-        </button>
+          {/* Skip to break/next set */}
+          <button 
+            onClick={skipPhase}
+            className="p-2.5 rounded-full text-zinc-400 hover:bg-zinc-800 transition-all active:scale-95 hover:text-zinc-200"
+            title="Skip phase"
+          >
+            <SkipForward size={20} />
+          </button>
+
+        </div>
+
+        {/* Sound & Spotify Controls */}
+        <div className="flex items-center gap-2 z-10">
+          {/* Spotify Music Toggle */}
+          <button 
+            onClick={() => setShowSpotifyDeck(!showSpotifyDeck)}
+            className={`p-2.5 rounded-full transition-all active:scale-95 ${
+              spotifyToken && showSpotifyDeck ? "text-[#1DB954] bg-[#1DB954]/10 shadow-lg shadow-[#1DB954]/20" : "text-zinc-400 hover:bg-zinc-800"
+            }`}
+            title="Spotify Music"
+          >
+            <Headphones size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Spotify Deck - Shows when toggled */}
