@@ -59,7 +59,7 @@ export default function MobileShell({ children }: { children: React.ReactNode })
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-emerald-400/10 to-transparent blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
                 <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-cyan-400 text-center">FlowState</h1>
-                <p className="text-center text-xs text-zinc-500 mt-1 font-light tracking-wider">Deep Work OS</p>
+                <p className="text-center text-xs text-zinc-500 mt-1 font-light tracking-wider">Deep Work</p>
               </div>
             </div>
 
@@ -101,7 +101,7 @@ export default function MobileShell({ children }: { children: React.ReactNode })
             <div className="w-full pt-6 pb-4">
               <div className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border border-emerald-500/20 rounded-lg p-3 backdrop-blur-sm">
                 <p className="text-center text-xs font-semibold text-emerald-400/80 mb-1">v1.1.0</p>
-                <p className="text-center text-[10px] text-zinc-500">Deep Work Labs</p>
+                <p className="text-center text-[10px] text-zinc-500">JARVIS LABS</p>
               </div>
             </div>
           </nav>
