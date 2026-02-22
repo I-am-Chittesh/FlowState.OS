@@ -145,7 +145,7 @@ export default function TimerPage() {
         <button 
           onClick={() => setShowSpotifyDeck(!showSpotifyDeck)}
           className={`p-2.5 rounded-full transition-all active:scale-95 ${
-            isSoundOn ? "text-[#1DB954] bg-[#1DB954]/10" : "text-zinc-400 hover:bg-zinc-800"
+            spotifyToken && showSpotifyDeck ? "text-[#1DB954] bg-[#1DB954]/10" : "text-zinc-400 hover:bg-zinc-800"
           }`}
           title="Spotify Music"
         >
@@ -154,7 +154,7 @@ export default function TimerPage() {
       </div>
 
       {/* Spotify Deck - Shows when toggled */}
-      {showSpotifyDeck && isSoundOn && (
+      {showSpotifyDeck && spotifyToken && (
         <div className="animate-in slide-in-from-bottom-10 fade-in duration-300 z-50">
           <SpotifyDeck />
         </div>
