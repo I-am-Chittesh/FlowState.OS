@@ -4,27 +4,40 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
 import { supabase } from "../../../lib/supabase"; 
-import { Settings, Calendar, Plus, LogOut, Volume2, User, ChevronRight, Trash2 } from "lucide-react";
+import { Settings, Calendar, Plus, LogOut, Volume2, User, ChevronRight, Trash2, Music, LogIn, LogOut as DisconnectIcon } from "lucide-react";
+
+declare global {
+  interface Window {
+    spotifyAuthWindow?: Window;
+  }
+}
+
+// Spotify OAuth Config
+const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID || "";
+const REDIRECT_URI = typeof window !== "undefined" ? `${window.location.origin}/spotify/callback` : "http://localhost:3000/spotify/callback";
+const SPOTIFY_AUTH_URL = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent("streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state")}`;
 
 export default function SettingsPage() {
   const router = useRouter();
   
-  // Connect to New Goal Store
-  const { goals, addGoal, deleteGoal, isSoundOn, toggleSound, fetchData } = useStudyStore();
+  const { goals, addGoal, deleteGoal, isSoundOn, toggleSound, fetchData, spotifyToken, setSpotifyToken } = useStudyStore();
   
   const [userEmail, setUserEmail] = useState("Loading...");
   const [newGoalTitle, setNewGoalTitle] = useState("");
   const [newGoalDate, setNewGoalDate] = useState("");
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [spotifyUser, setSpotifyUser] = useState<any>(null);
 
   // Load Data
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) setUserEmail(user.email || "User");
-      fetchData(); // Sync with DB
+      fetchData();
+      setSpotifyConnected(!!spotifyToken);
     };
     init();
-  }, [fetchData]);
+  }, [fetchData, spotifyToken]);
 
   // Handlers
   const handleLogout = async () => {
@@ -37,6 +50,20 @@ export default function SettingsPage() {
     await addGoal(newGoalTitle, new Date(newGoalDate), "#10b981");
     setNewGoalTitle("");
     setNewGoalDate("");
+  };
+
+  const handleSpotifyConnect = () => {
+    if (!SPOTIFY_CLIENT_ID) {
+      alert("Spotify Client ID not configured");
+      return;
+    }
+    window.open(SPOTIFY_AUTH_URL, "Spotify Auth", "width=500,height=700");
+  };
+
+  const handleSpotifyDisconnect = () => {
+    setSpotifyToken(null);
+    setSpotifyConnected(false);
+    setSpotifyUser(null);
   };
 
   return (
@@ -56,6 +83,41 @@ export default function SettingsPage() {
         <div className="flex-1 min-w-0">
           <h3 className="text-white font-medium truncate">Active Operator</h3>
           <p className="text-zinc-500 text-xs truncate">{userEmail}</p>
+        </div>
+      </div>
+
+      {/* SPOTIFY CONNECTION */}
+      <div className="space-y-3">
+        <h3 className="text-zinc-500 text-xs font-bold uppercase px-1">Music Service</h3>
+        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#1DB954]/20 rounded-full flex items-center justify-center">
+                <Music size={20} className="text-[#1DB954]" />
+              </div>
+              <div>
+                <h4 className="text-white text-sm font-medium">Spotify</h4>
+                <p className="text-zinc-500 text-xs">{spotifyConnected ? "Connected" : "Not Connected"}</p>
+              </div>
+            </div>
+            {spotifyConnected ? (
+              <button 
+                onClick={handleSpotifyDisconnect}
+                className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-lg text-xs font-medium transition-all"
+              >
+                <DisconnectIcon size={14} />
+                Disconnect
+              </button>
+            ) : (
+              <button 
+                onClick={handleSpotifyConnect}
+                className="flex items-center gap-2 bg-[#1DB954] hover:bg-[#1ed760] text-black px-4 py-2 rounded-lg text-xs font-medium transition-all"
+              >
+                <LogIn size={14} />
+                Connect
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

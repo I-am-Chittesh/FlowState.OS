@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
-import SpotifyPlayer from "../../../components/player/SpotifyPlayer";
+import SpotifyDeck from "../../../components/modules/music/SpotifyDeck";
 import TimerCircle from "../../../components/modules/timer/TimerCircle";
 import TimerSetup from "../../../components/modules/timer/TimerSetup";
 import { useSpotifyPlayer } from "../../../hooks/useSpotifyPlayer";
@@ -33,6 +33,8 @@ export default function TimerPage() {
     sessionJustCompleted
   } = useStudyStore();
   
+  const [showSpotifyDeck, setShowSpotifyDeck] = useState(false);
+  
   useSpotifyPlayer(spotifyToken);
 
   // Timer Engine
@@ -61,7 +63,7 @@ export default function TimerPage() {
   }
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-3 space-y-4">
+    <div className="h-full flex flex-col items-center justify-center p-3 space-y-4 relative">
       
       {/* Dynamic Background: Pulse when active */}
       {isActive && (
@@ -139,22 +141,22 @@ export default function TimerPage() {
 
       {/* Sound & Spotify Controls */}
       <div className="flex items-center gap-2 z-10">
-        {/* Sound Toggle */}
+        {/* Spotify Music Toggle */}
         <button 
-          onClick={toggleSound}
+          onClick={() => setShowSpotifyDeck(!showSpotifyDeck)}
           className={`p-2.5 rounded-full transition-all active:scale-95 ${
-            isSoundOn ? "text-indigo-400 bg-indigo-500/10" : "text-zinc-400 hover:bg-zinc-800"
+            isSoundOn ? "text-[#1DB954] bg-[#1DB954]/10" : "text-zinc-400 hover:bg-zinc-800"
           }`}
-          title="Toggle music"
+          title="Spotify Music"
         >
           <Headphones size={20} />
         </button>
       </div>
 
-      {/* Music Player Card (Appears when Sound is toggled ON) */}
-      {isSoundOn && (
-        <div className="animate-in slide-in-from-bottom-10 fade-in duration-500 z-50 scale-90 origin-bottom">
-          <SpotifyPlayer />
+      {/* Spotify Deck - Shows when toggled */}
+      {showSpotifyDeck && isSoundOn && (
+        <div className="animate-in slide-in-from-bottom-10 fade-in duration-300 z-50">
+          <SpotifyDeck />
         </div>
       )}
 

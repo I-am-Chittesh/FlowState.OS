@@ -181,7 +181,15 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   }),
 
   toggleSound: () => set((state) => ({ isSoundOn: !state.isSoundOn })),
-  setSpotifyToken: (token) => set({ spotifyToken: token }),
+  setSpotifyToken: (token) => {
+    if (token) {
+      localStorage.setItem("spotify_token", token);
+    } else {
+      localStorage.removeItem("spotify_token");
+      localStorage.removeItem("spotify_refresh_token");
+    }
+    set({ spotifyToken: token });
+  },
 
   // Calculate pressure for all goals
   calculateAllPressures: () => set((state) => {
@@ -346,6 +354,9 @@ export const useStudyStore = create<StudyState>((set, get) => ({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Load Spotify token from localStorage
+    const spotifyToken = typeof window !== 'undefined' ? localStorage.getItem('spotify_token') : null;
+
     const { data: goalsData } = await supabase.from('goals').select('*').order('deadline', { ascending: true });
     const { data: tasksData } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
     const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -357,7 +368,8 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       level: profileData?.level || 1,
       totalTime: profileData?.total_time || 0,
       sessionsCompleted: profileData?.sessions_completed || 0,
-      userName: profileData?.full_name || user.user_metadata?.full_name || "User"
+      userName: profileData?.full_name || user.user_metadata?.full_name || "User",
+      spotifyToken: spotifyToken
     });
   },
 
