@@ -34,8 +34,19 @@ export default function TimerPage() {
   } = useStudyStore();
   
   const [showSpotifyDeck, setShowSpotifyDeck] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   useSpotifyPlayer(spotifyToken);
+
+  // Detect mobile/desktop on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Timer Engine
   useEffect(() => {
@@ -145,7 +156,7 @@ export default function TimerPage() {
         <button 
           onClick={() => setShowSpotifyDeck(!showSpotifyDeck)}
           className={`p-2.5 rounded-full transition-all active:scale-95 ${
-            spotifyToken && showSpotifyDeck ? "text-[#1DB954] bg-[#1DB954]/10" : "text-zinc-400 hover:bg-zinc-800"
+            spotifyToken && showSpotifyDeck ? "text-[#1DB954] bg-[#1DB954]/10 shadow-lg shadow-[#1DB954]/20" : "text-zinc-400 hover:bg-zinc-800"
           }`}
           title="Spotify Music"
         >
@@ -156,7 +167,10 @@ export default function TimerPage() {
       {/* Spotify Deck - Shows when toggled */}
       {showSpotifyDeck && spotifyToken && (
         <div className="z-50 pointer-events-auto">
-          <SpotifyDeck />
+          <SpotifyDeck 
+            isMobile={isMobile}
+            onClose={() => setShowSpotifyDeck(false)}
+          />
         </div>
       )}
 

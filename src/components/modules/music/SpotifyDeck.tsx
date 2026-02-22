@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Play, Pause, SkipBack, SkipForward, Volume2, Music } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, X } from "lucide-react";
 import { useSpotifyStore } from "../../../lib/store/useSpotifyStore";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
 
-export default function SpotifyDeck() {
+interface SpotifyDeckProps {
+  onClose?: () => void;
+  isMobile?: boolean;
+}
+
+export default function SpotifyDeck({ onClose, isMobile = false }: SpotifyDeckProps) {
   const { isPlaying, trackName, artistName, albumArt, setIsPlaying } = useSpotifyStore();
   const { spotifyToken } = useStudyStore();
   const [volume, setVolume] = useState(70);
@@ -86,6 +91,69 @@ export default function SpotifyDeck() {
     }
   };
 
+  // MOBILE MINI PLAYER
+  if (isMobile) {
+    return (
+      <div className="fixed bottom-32 left-0 right-0 z-50 px-3 pointer-events-auto">
+        <div className="bg-gradient-to-r from-zinc-900/95 to-black/95 backdrop-blur-xl border border-zinc-800/50 rounded-lg p-3 space-y-2 shadow-lg">
+          
+          {/* Header with Close Button */}
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-white font-semibold text-xs line-clamp-1 flex-1">{displayTrack}</h3>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all flex-shrink-0"
+              title="Close player"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Artist Name */}
+          <p className="text-zinc-400 text-[10px] line-clamp-1">{displayArtist}</p>
+
+          {/* Controls */}
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <button
+              onClick={() => handleSkip("previous")}
+              disabled={loading || !spotifyToken}
+              className="p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex-1"
+            >
+              <SkipBack size={16} fill="currentColor" />
+            </button>
+
+            <button
+              onClick={handlePlayPause}
+              disabled={loading || !spotifyToken}
+              className="p-2.5 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-black transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex-1"
+            >
+              {isPlaying ? (
+                <Pause size={16} fill="currentColor" />
+              ) : (
+                <Play size={16} fill="currentColor" />
+              )}
+            </button>
+
+            <button
+              onClick={() => handleSkip("next")}
+              disabled={loading || !spotifyToken}
+              className="p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex-1"
+            >
+              <SkipForward size={16} fill="currentColor" />
+            </button>
+          </div>
+
+          {/* Playing Indicator */}
+          <div className="flex items-center justify-center gap-1 pt-1">
+            <div className={`w-1 h-1 rounded-full ${isPlaying ? "bg-[#1DB954]" : "bg-zinc-600"}`} />
+            <span className="text-[9px] text-zinc-500">{isPlaying ? "Playing" : "Paused"}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // DESKTOP FULL PLAYER
   return (
     <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 w-[90%] max-w-sm pointer-events-auto">
       <div className="bg-gradient-to-br from-zinc-900/95 via-black/95 to-zinc-950/95 backdrop-blur-xl border border-zinc-800/50 rounded-2xl p-4 space-y-4 shadow-2xl pointer-events-auto">
