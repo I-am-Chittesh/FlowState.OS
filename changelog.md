@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [2.1.0] - 2026-02-22
+
+- The application is optimised for laptops and tablets
+- The desktop version is now equipped with a slight UI/UX change.
+- Spotify integration is added to both the desktop and mobile(PWA) application.
+- The settings page is added with a new functionality of connecting spotify account to Flowstate app.
+
+---
+
 ## [1.1.0] - 2026-01-19
 
 ### Added
