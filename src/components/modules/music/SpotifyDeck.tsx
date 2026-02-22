@@ -94,59 +94,71 @@ export default function SpotifyDeck({ onClose, isMobile = false }: SpotifyDeckPr
   // MOBILE MINI PLAYER
   if (isMobile) {
     return (
-      <div className="fixed bottom-32 left-0 right-0 z-50 px-4 pointer-events-auto">
-        <div className="bg-gradient-to-br from-zinc-800/90 via-zinc-900/95 to-black/95 backdrop-blur-md border border-zinc-700/40 rounded-3xl p-4 space-y-3 shadow-2xl">
+      <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 z-50 w-[88%] max-w-xs pointer-events-auto">
+        <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl px-5 py-4 space-y-3 shadow-2xl">
           
-          {/* Header with Close Button */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="text-white font-bold text-sm line-clamp-1">{displayTrack}</h3>
-              <p className="text-zinc-400 text-xs line-clamp-1 mt-0.5">{displayArtist}</p>
+          {/* Header Row - Album Art + Info + Close */}
+          <div className="flex items-center gap-3">
+            {/* Album Art */}
+            <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 shadow-md">
+              <img 
+                src={displayArt} 
+                alt="Album" 
+                className="w-full h-full object-cover"
+              />
             </div>
+
+            {/* Song Info */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-white font-semibold text-sm line-clamp-1">{displayTrack}</h3>
+              <p className="text-gray-300 text-xs line-clamp-1">{displayArtist}</p>
+            </div>
+
+            {/* Close Button */}
             <button
               onClick={onClose}
-              className="p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700/50 transition-all active:scale-90 flex-shrink-0"
+              className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition-all active:scale-90 flex-shrink-0"
               title="Close player"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
 
           {/* Controls Row */}
-          <div className="flex items-center justify-center gap-1 pt-1">
+          <div className="flex items-center justify-center gap-4 pt-1">
             <button
               onClick={() => handleSkip("previous")}
               disabled={loading || !spotifyToken}
-              className="flex-1 p-3 rounded-2xl text-zinc-300 hover:text-white hover:bg-zinc-700/50 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="p-2.5 rounded-full text-gray-300 hover:text-white transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <SkipBack size={18} fill="currentColor" />
+              <SkipBack size={16} fill="currentColor" />
             </button>
 
             <button
               onClick={handlePlayPause}
               disabled={loading || !spotifyToken}
-              className="flex-1 p-3.5 rounded-2xl bg-gradient-to-br from-[#1DB954] to-[#1aa34a] hover:from-[#1ed760] hover:to-[#1db954] text-black transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-[#1DB954]/20 font-semibold"
+              className="p-3 rounded-full bg-[#1DB954] hover:bg-[#1ed760] text-white transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-[#1DB954]/30"
             >
               {isPlaying ? (
-                <Pause size={18} fill="currentColor" />
+                <Pause size={16} fill="currentColor" />
               ) : (
-                <Play size={18} fill="currentColor" />
+                <Play size={16} fill="currentColor" />
               )}
             </button>
 
             <button
               onClick={() => handleSkip("next")}
               disabled={loading || !spotifyToken}
-              className="flex-1 p-3 rounded-2xl text-zinc-300 hover:text-white hover:bg-zinc-700/50 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="p-2.5 rounded-full text-gray-300 hover:text-white transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <SkipForward size={18} fill="currentColor" />
+              <SkipForward size={16} fill="currentColor" />
             </button>
           </div>
 
           {/* Status Indicator */}
-          <div className="flex items-center justify-center gap-1.5 pt-1">
-            <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isPlaying ? "bg-[#1DB954]" : "bg-zinc-500"}`} />
-            <span className="text-[11px] font-medium text-zinc-400">{isPlaying ? "Playing" : "Paused"}</span>
+          <div className="flex items-center justify-center gap-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full transition-all ${isPlaying ? "bg-[#1DB954] shadow-sm shadow-[#1DB954]/50" : "bg-gray-400"}`} />
+            <span className="text-[10px] font-medium text-gray-400">{isPlaying ? "Playing" : "Paused"}</span>
           </div>
         </div>
       </div>
