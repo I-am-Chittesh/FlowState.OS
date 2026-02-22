@@ -22,10 +22,11 @@ export default function TimerCircle({
   breakDuration,
 }: TimerCircleProps) {
   const totalDuration = isBreak ? breakDuration : workDuration;
-  const progress = Math.max(0, (totalDuration - timeLeft) / totalDuration);
+  const safeTotalDuration = Math.max(1, totalDuration); // Prevent division by zero
+  const progress = Math.max(0, Math.min(1, (safeTotalDuration - timeLeft) / safeTotalDuration));
 
   const circumference = 2 * Math.PI * 90; // radius 90
-  const strokeDashoffset = circumference * (1 - progress);
+  const strokeDashoffset = isNaN(circumference * (1 - progress)) ? circumference : circumference * (1 - progress);
 
   // Color coding
   const ringColor = isBreak ? "#3b82f6" : "#10b981"; // Blue for break, Green for work

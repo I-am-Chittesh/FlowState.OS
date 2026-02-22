@@ -65,33 +65,48 @@ export default function TimerSetup() {
     onSecChange: (v: number) => void;
     label: string;
     bgColor: string;
-  }) => (
-    <div className="flex flex-col items-center gap-1.5">
-      <span className="text-xs font-semibold tracking-widest text-zinc-400">{label}</span>
-      <div className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl ${bgColor} border-2 border-zinc-700 transition-all focus-within:border-zinc-500 focus-within:bg-opacity-80`}>
-        <input
-          type="number"
-          min="0"
-          max="99"
-          value={minValue.toString().padStart(2, "0")}
-          onChange={(e) => onMinChange(handleInputChange(e.target.value, 99))}
-          className="w-12 bg-transparent text-center text-2xl font-bold text-zinc-300 focus:text-white focus:outline-none transition-colors"
-          placeholder="00"
-        />
-        <span className="text-xl font-bold text-zinc-500">:</span>
-        <input
-          type="number"
-          min="0"
-          max="59"
-          value={secValue.toString().padStart(2, "0")}
-          onChange={(e) => onSecChange(handleInputChange(e.target.value, 59))}
-          className="w-12 bg-transparent text-center text-2xl font-bold text-zinc-300 focus:text-white focus:outline-none transition-colors"
-          placeholder="00"
-        />
+  }) => {
+    const [minInput, setMinInput] = useState(minValue.toString().padStart(2, "0"));
+    const [secInput, setSecInput] = useState(secValue.toString().padStart(2, "0"));
+
+    return (
+      <div className="flex flex-col items-center gap-1.5">
+        <span className="text-xs font-semibold tracking-widest text-zinc-400">{label}</span>
+        <div className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl ${bgColor} border-2 border-zinc-700 transition-all focus-within:border-zinc-500 focus-within:bg-opacity-80`}>
+          <input
+            type="number"
+            min="0"
+            max="99"
+            value={minInput}
+            onChange={(e) => setMinInput(e.target.value)}
+            onBlur={(e) => {
+              const num = handleInputChange(e.target.value || "0", 99);
+              onMinChange(num);
+              setMinInput(num.toString().padStart(2, "0"));
+            }}
+            className="w-12 bg-transparent text-center text-2xl font-bold text-zinc-300 focus:text-white focus:outline-none transition-colors"
+            placeholder="00"
+          />
+          <span className="text-xl font-bold text-zinc-500">:</span>
+          <input
+            type="number"
+            min="0"
+            max="59"
+            value={secInput}
+            onChange={(e) => setSecInput(e.target.value)}
+            onBlur={(e) => {
+              const num = handleInputChange(e.target.value || "0", 59);
+              onSecChange(num);
+              setSecInput(num.toString().padStart(2, "0"));
+            }}
+            className="w-12 bg-transparent text-center text-2xl font-bold text-zinc-300 focus:text-white focus:outline-none transition-colors"
+            placeholder="00"
+          />
+        </div>
+        <span className="text-xs text-zinc-600 font-medium">mm:ss</span>
       </div>
-      <span className="text-xs text-zinc-600 font-medium">mm:ss</span>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-4 py-6 space-y-4">
@@ -140,21 +155,7 @@ export default function TimerSetup() {
         </div>
 
         {/* Sets */}
-        <div className="flex flex-col items-center gap-1.5">
-          <span className="text-xs font-semibold tracking-widest text-zinc-400">Sets</span>
-          <div className="flex items-center px-4 py-2.5 rounded-xl bg-indigo-500/10 border-2 border-zinc-700 transition-all focus-within:border-zinc-500 focus-within:bg-opacity-80">
-            <input
-              type="number"
-              min="1"
-              max="20"
-              value={sets.toString().padStart(2, "0")}
-              onChange={(e) => setSets(handleInputChange(e.target.value, 20) || 1)}
-              className="w-12 bg-transparent text-center text-2xl font-bold text-zinc-300 focus:text-white focus:outline-none transition-colors"
-              placeholder="04"
-            />
-          </div>
-          <span className="text-xs text-zinc-600 font-medium">total</span>
-        </div>
+        <SetInput value={sets} onChange={setSets} />
       </div>
 
       {/* Start Button */}
@@ -166,4 +167,31 @@ export default function TimerSetup() {
       </button>
     </div>
   );
+
+  function SetInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+    const [input, setInput] = useState(value.toString().padStart(2, "0"));
+
+    return (
+      <div className="flex flex-col items-center gap-1.5">
+        <span className="text-xs font-semibold tracking-widest text-zinc-400">Sets</span>
+        <div className="flex items-center px-4 py-2.5 rounded-xl bg-indigo-500/10 border-2 border-zinc-700 transition-all focus-within:border-zinc-500 focus-within:bg-opacity-80">
+          <input
+            type="number"
+            min="1"
+            max="20"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onBlur={(e) => {
+              const num = Math.max(1, Math.min(20, parseInt(e.target.value) || 1));
+              onChange(num);
+              setInput(num.toString().padStart(2, "0"));
+            }}
+            className="w-12 bg-transparent text-center text-2xl font-bold text-zinc-300 focus:text-white focus:outline-none transition-colors"
+            placeholder="04"
+          />
+        </div>
+        <span className="text-xs text-zinc-600 font-medium">total</span>
+      </div>
+    );
+  }
 }
