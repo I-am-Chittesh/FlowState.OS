@@ -8,7 +8,7 @@ import { Settings, Calendar, Plus, LogOut, Volume2, User, ChevronRight, Trash2, 
 
 // Spotify OAuth Config
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID || "";
-const REDIRECT_URI = typeof window !== "undefined" ? `${window.location.origin}/spotify/callback` : "http://localhost:3000/spotify/callback";
+const REDIRECT_URI = process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI || "http://localhost:3000/spotify/callback";
 const SPOTIFY_AUTH_URL = `https://accounts.spotify.com/authorize?client_id=${SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent("streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state")}`;
 
 export default function SettingsPage() {
