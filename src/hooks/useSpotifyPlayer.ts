@@ -12,61 +12,107 @@ export const useSpotifyPlayer = (token: string | null) => {
     let player: any = null;
     let script: HTMLScriptElement | null = null;
 
-    // Load and setup Spotify SDK
-    try {
+    // Load Spotify SDK
+    const loadSpotifySDK = () => {
+      if ((window as any).Spotify && (window as any).Spotify.Player) {
+        initializePlayer();
+        return;
+      }
+
       script = document.createElement("script");
       script.src = "https://sdk.scdn.co/spotify-player.js";
       script.async = true;
+      script.onload = () => {
+        console.log("Spotify SDK loaded");
+      };
       document.body.appendChild(script);
 
-      (window as any).onSpotifyWebPlaybackSDKReady = () => {
-        try {
-          player = new (window as any).Spotify.Player({
-            name: 'FlowState.os',
-            getOAuthToken: (cb: any) => { cb(token); },
-            volume: 0.5
-          });
+      // SDK will call this when ready
+      (window as any).onSpotifyWebPlaybackSDKReady = initializePlayer;
+    };
 
-          player.addListener('ready', ({ device_id }: any) => {
-            console.log('FlowState ready with device:', device_id);
-          });
-
-          player.addListener('player_state_changed', (state: any) => {
-            if (!state) return;
-            const track = state.track_window.current_track;
-            if (track) {
-              setNowPlaying(
-                track.name,
-                track.artists[0]?.name || "Unknown",
-                track.album.images[0]?.url || "",
-                !state.paused
-              );
-              setIsPlaying(!state.paused);
-            }
-          });
-
-          player.addListener('initialization_error', ({ message }: any) => {
-            console.error('Spotify init error:', message);
-          });
-
-          player.addListener('authentication_error', ({ message }: any) => {
-            console.error('Spotify auth error:', message);
-          });
-
-          player.addListener('account_error', ({ message }: any) => {
-            console.error('Spotify account error:', message);
-          });
-
-          player.connect();
-        } catch (err) {
-          console.error('Failed to initialize Spotify player:', err);
+    const initializePlayer = () => {
+      try {
+        const SpotifyPlayer = (window as any).Spotify?.Player;
+        if (!SpotifyPlayer) {
+          console.error("Spotify Player class not found");
+          return;
         }
-      };
-    } catch (err) {
-      console.error('Failed to load Spotify SDK:', err);
-    }
 
-    // Fallback: Poll for current track every 2 seconds
+        player = new SpotifyPlayer({
+          name: 'FlowState.OS',
+          getOAuthToken: (cb: any) => { cb(token); },
+          volume: 0.5
+        });
+
+        // Device ready
+        player.addListener('ready', ({ device_id }: any) => {
+          console.log('FlowState device ready:', device_id);
+          // Transfer playback to this device
+          transferPlaybackToDevice(device_id);
+        });
+
+        // Listen for state changes
+        player.addListener('player_state_changed', (state: any) => {
+          if (!state) return;
+          
+          const track = state.track_window?.current_track;
+          if (track) {
+            setNowPlaying(
+              track.name,
+              track.artists[0]?.name || "Unknown",
+              track.album?.images?.[0]?.url || "",
+              !state.paused
+            );
+            setIsPlaying(!state.paused);
+          }
+        });
+
+        // Error handlers
+        player.addListener('initialization_error', ({ message }: any) => {
+          console.error('Spotify init error:', message);
+        });
+
+        player.addListener('authentication_error', ({ message }: any) => {
+          console.error('Spotify auth error:', message);
+        });
+
+        player.addListener('account_error', ({ message }: any) => {
+          console.error('Spotify account error:', message);
+        });
+
+        player.addListener('playback_error', ({ message }: any) => {
+          console.error('Spotify playback error:', message);
+        });
+
+        // Connect to Spotify
+        player.connect();
+      } catch (err) {
+        console.error('Failed to initialize Spotify player:', err);
+      }
+    };
+
+    const transferPlaybackToDevice = async (deviceId: string) => {
+      if (!token) return;
+      try {
+        await fetch('https://api.spotify.com/v1/me/player', {
+          method: 'PUT',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            device_ids: [deviceId],
+            play: false // Don't auto-play, let user click
+          })
+        });
+        console.log('Playback transferred to FlowState device');
+      } catch (err) {
+        console.error('Failed to transfer playback:', err);
+      }
+    };
+
+    // Poll for current track to sync state (even if not using Web Playback SDK)
     const pollCurrentTrack = async () => {
       if (!token) return;
       try {
@@ -94,7 +140,9 @@ export const useSpotifyPlayer = (token: string | null) => {
       }
     };
 
-    pollInterval = setInterval(pollCurrentTrack, 2000);
+    // Start SDK and polling
+    loadSpotifySDK();
+    pollInterval = setInterval(pollCurrentTrack, 1000); // Poll every second for sync
     pollCurrentTrack();
 
     // Cleanup
@@ -103,15 +151,15 @@ export const useSpotifyPlayer = (token: string | null) => {
       if (player) {
         try {
           player.disconnect();
-        } catch (e) {
-          // Ignore
+        } catch (err) {
+          console.error('Error disconnecting player:', err);
         }
       }
-      if (script?.parentNode) {
+      if (script && script.parentNode) {
         try {
           script.parentNode.removeChild(script);
-        } catch (e) {
-          // Ignore
+        } catch (err) {
+          console.error('Error removing script:', err);
         }
       }
     };

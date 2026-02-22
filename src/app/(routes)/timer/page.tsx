@@ -155,7 +155,7 @@ export default function TimerPage() {
 
       {/* Spotify Deck - Shows when toggled */}
       {showSpotifyDeck && spotifyToken && (
-        <div className="animate-in slide-in-from-bottom-10 fade-in duration-300 z-50">
+        <div className="z-50 pointer-events-auto">
           <SpotifyDeck />
         </div>
       )}
