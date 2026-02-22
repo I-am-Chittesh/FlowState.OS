@@ -5,13 +5,13 @@ import MobileShell from "../components/layout/MobileShell";
 
 const inter = Inter({ subsets: ["latin"] });
 
-// 1. The Mobile Settings (Locks zoom, handles notch)
+// 1. Responsive Viewport Settings (Mobile + Desktop)
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#000000",
+  maximumScale: 5, // Allow zooming on desktop
+  userScalable: true, // Allow user scaling
 };
 
 // 2. The App Metadata (SEO + Apple Settings)

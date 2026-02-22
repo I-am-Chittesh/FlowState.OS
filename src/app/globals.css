@@ -43,19 +43,12 @@ html {
   .pb-safe {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
-}
-
-/* Dev mode indicator (shows mobile frame on desktop) */
-@media (min-width: 768px) {
-  body::before {
-    content: "📱 Mobile Dev Frame";
-    position: fixed;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 12px;
-    color: #666;
-    z-index: -1;
-    pointer-events: none;
+  
+  .pl-safe {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+  
+  .pr-safe {
+    padding-right: max(1rem, env(safe-area-inset-right));
   }
 }
