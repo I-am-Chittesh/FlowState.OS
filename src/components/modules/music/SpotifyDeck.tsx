@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Play, Pause, SkipBack, SkipForward, Volume2, Music } from "lucide-react";
 import { useSpotifyStore } from "../../../lib/store/useSpotifyStore";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
@@ -10,28 +10,6 @@ export default function SpotifyDeck() {
   const { spotifyToken } = useStudyStore();
   const [volume, setVolume] = useState(70);
   const [loading, setLoading] = useState(false);
-  const [deviceId, setDeviceId] = useState<string | null>(null);
-
-  // Get available devices on mount
-  useEffect(() => {
-    const getDevices = async () => {
-      if (!spotifyToken) return;
-      try {
-        const res = await fetch("https://api.spotify.com/v1/me/player/devices", {
-          headers: { "Authorization": `Bearer ${spotifyToken}` },
-        });
-        const data = await res.json();
-        if (data.devices && data.devices.length > 0) {
-          // Use the currently active device or first one
-          const activeDevice = data.devices.find((d: any) => d.is_active) || data.devices[0];
-          setDeviceId(activeDevice.id);
-        }
-      } catch (err) {
-        console.error("Failed to fetch devices:", err);
-      }
-    };
-    getDevices();
-  }, [spotifyToken]);
 
   const displayTrack = trackName === "Not Playing" ? "No Track" : trackName;
   const displayArtist = artistName === "Spotify" ? "Play something..." : artistName;
@@ -45,12 +23,7 @@ export default function SpotifyDeck() {
         ? "https://api.spotify.com/v1/me/player/pause"
         : "https://api.spotify.com/v1/me/player/play";
       
-      const url = new URL(endpoint);
-      if (deviceId) {
-        url.searchParams.append("device_id", deviceId);
-      }
-
-      const res = await fetch(url.toString(), {
+      const res = await fetch(endpoint, {
         method: "PUT",
         headers: { "Authorization": `Bearer ${spotifyToken}` },
       });
@@ -80,12 +53,7 @@ export default function SpotifyDeck() {
         ? "https://api.spotify.com/v1/me/player/next"
         : "https://api.spotify.com/v1/me/player/previous";
       
-      const url = new URL(endpoint);
-      if (deviceId) {
-        url.searchParams.append("device_id", deviceId);
-      }
-
-      const res = await fetch(url.toString(), {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Authorization": `Bearer ${spotifyToken}` },
       });
@@ -105,13 +73,7 @@ export default function SpotifyDeck() {
     if (!spotifyToken) return;
     
     try {
-      const url = new URL("https://api.spotify.com/v1/me/player/volume");
-      url.searchParams.append("volume_percent", newVolume.toString());
-      if (deviceId) {
-        url.searchParams.append("device_id", deviceId);
-      }
-
-      const res = await fetch(url.toString(), {
+      const res = await fetch(`https://api.spotify.com/v1/me/player/volume?volume_percent=${newVolume}`, {
         method: "PUT",
         headers: { "Authorization": `Bearer ${spotifyToken}` },
       });
