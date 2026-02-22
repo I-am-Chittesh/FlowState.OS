@@ -171,7 +171,7 @@ export default function TimerPage() {
       </div>
 
       {/* Spotify Deck - Shows when toggled */}
-      {showSpotifyDeck && spotifyToken && (
+      {showSpotifyDeck && (
         <div className="z-50 pointer-events-auto">
           <SpotifyDeck 
             isMobile={isMobile}
