@@ -108,7 +108,7 @@ export default function TimerPage() {
           className="text-center space-y-2 z-10"
         >
           <motion.h2
-            key={isBreak}
+            key={isBreak ? "break" : "focus"}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-zinc-500 text-xs tracking-widest uppercase font-medium"
