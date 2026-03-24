@@ -1,26 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import { Play, Pause, SkipForward, SkipBack, Volume2, X } from "lucide-react";
-import { useSpotifyStore } from "../../../lib/store/useSpotifyStore";
-import { useSpotifyPlayer } from "../../../hooks/useSpotifyPlayer";
 
 interface PlayerBarProps {
   layout?: "horizontal" | "expanded"; // horizontal mini player, expanded full player
   onClose?: () => void;
 }
 
-export default function PlayerBar({ layout = "horizontal", onClose }: PlayerBarProps) {
-  const { isConnected, currentTrack, isPlaying } = useSpotifyStore();
-  const { togglePlayPause, nextTrack, prevTrack } = useSpotifyPlayer();
+// Mock track data for demonstration
+const mockTrack = {
+  name: "Sample Track",
+  artist: "Sample Artist",
+  image: undefined,
+  progress: 45,
+  progressTime: "1:23",
+  duration: "3:45",
+};
 
+export default function PlayerBar({ layout = "horizontal", onClose }: PlayerBarProps) {
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isExpanded, setIsExpanded] = useState(layout === "expanded");
   const [volume, setVolume] = useState(70);
+  const currentTrack = mockTrack;
 
-  if (!isConnected || !currentTrack) {
-    return null;
-  }
+  const togglePlayPause = () => setIsPlaying(!isPlaying);
+  const nextTrack = () => console.log("Next track");
+  const prevTrack = () => console.log("Previous track");
 
   // Horizontal mini player (for mobile timer)
   if (layout === "horizontal" && !isExpanded) {

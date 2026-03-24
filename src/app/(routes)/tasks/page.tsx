@@ -109,8 +109,8 @@ export default function TasksPage() {
         return { overdue, today: [], upcoming: [] };
       case "today":
         return { overdue: [], today, upcoming: [] };
-      case "upcoming":
-        return { overdue: [], today: [], upcoming };
+      case "by-goal":
+        return { overdue, today, upcoming }; // Show all for goal filter (filtered by goal selection)
       case "all":
       default:
         return { overdue, today, upcoming };

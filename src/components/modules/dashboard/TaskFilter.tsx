@@ -34,7 +34,11 @@ export default function TaskFilter({
 
   const itemVariants = {
     hidden: { opacity: 0, scale: 0.9 },
-    visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 200 } },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: { type: "spring" as const, stiffness: 200, damping: 20 },
+    },
   };
 
   return (
