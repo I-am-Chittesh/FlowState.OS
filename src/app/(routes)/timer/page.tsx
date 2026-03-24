@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useStudyStore } from "../../../lib/store/useStudyStore";
 import SpotifyDeck from "../../../components/modules/music/SpotifyDeck";
+import PlayerBar from "../../../components/modules/music/PlayerBar";
 import TimerCircle from "../../../components/modules/timer/TimerCircle";
 import TimerSetup from "../../../components/modules/timer/TimerSetup";
 import { useSpotifyPlayer } from "../../../hooks/useSpotifyPlayer";
-import { Play, Pause, RotateCcw, Headphones, Music2, SkipForward } from "lucide-react";
+import { Play, Pause, RotateCcw, Headphones, SkipForward } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export default function TimerPage() {
@@ -34,6 +36,7 @@ export default function TimerPage() {
   } = useStudyStore();
   
   const [showSpotifyDeck, setShowSpotifyDeck] = useState(false);
+  const [showPlayerBar, setShowPlayerBar] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
   useSpotifyPlayer(spotifyToken);
@@ -74,34 +77,56 @@ export default function TimerPage() {
   }
 
   return (
-    <div className="h-full flex items-center justify-center p-3 relative">
-      
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="h-full flex items-center justify-center p-3 relative"
+    >
       {/* Dynamic Background: Pulse when active */}
       {isActive && (
-        <div className={`absolute inset-0 pointer-events-none transition-colors duration-300 ${
-          isBreak 
-            ? "bg-blue-500/5 animate-pulse" 
-            : "bg-emerald-500/5 animate-pulse"
-        }`} />
+        <motion.div
+          animate={{ opacity: [0.05, 0.1, 0.05] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className={`absolute inset-0 pointer-events-none ${
+            isBreak ? "bg-blue-500" : "bg-emerald-500"
+          }`}
+        />
       )}
 
       {/* Timer Container - Shifts left when player opens on desktop */}
-      <div className={`flex flex-col items-center justify-center space-y-4 transition-all duration-300 ${
-        showSpotifyDeck && !isMobile ? "-translate-x-32" : ""
-      }`}>
-        
+      <motion.div
+        animate={{
+          x: showPlayerBar && !isMobile ? -100 : 0,
+        }}
+        transition={{ type: "spring", stiffness: 200, damping: 30 }}
+        className="flex flex-col items-center justify-center space-y-6 z-20"
+      >
         {/* Header */}
-        <div className="text-center space-y-0.5 z-10">
-          <h2 className="text-zinc-500 text-xs tracking-widest uppercase">
-            {isBreak ? "Time to Rest" : activeTaskId ? "Working on Task" : "Focus Time"}
-          </h2>
-          <h1 className="text-white text-sm font-medium px-3 truncate max-w-[280px]">
-            {currentTask}
-          </h1>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-2 z-10"
+        >
+          <motion.h2
+            key={isBreak}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-zinc-500 text-xs tracking-widest uppercase font-medium"
+          >
+            {isBreak ? "🧘 Time to Rest" : activeTaskId ? "⚡ Working on Task" : "🎯 Focus Time"}
+          </motion.h2>
+          <p className="text-white text-sm font-medium px-3 truncate max-w-[280px]">
+            {currentTask || "Get ready to focus"}
+          </p>
+        </motion.div>
 
         {/* Timer Circle */}
-        <div className="relative z-10 scale-75">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="relative z-10"
+        >
           <TimerCircle
             timeLeft={timeLeft}
             isBreak={isBreak}
@@ -111,75 +136,99 @@ export default function TimerPage() {
             workDuration={workDuration}
             breakDuration={breakDuration}
           />
-        </div>
+        </motion.div>
 
         {/* Controls Row */}
-        <div className="flex items-center gap-3 z-10">
-          
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="flex items-center gap-4 z-10"
+        >
           {/* Reset */}
-          <button 
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={resetTimer}
-            className="p-2.5 rounded-full text-zinc-400 hover:bg-zinc-800 transition-all active:scale-95 hover:text-zinc-200"
+            className="p-2.5 rounded-full text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 transition-all"
             title="Reset timer"
           >
             <RotateCcw size={20} />
-          </button>
+          </motion.button>
 
           {/* Play/Pause Main Button */}
-          <button 
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
             onClick={isActive ? pauseTimer : startTimer}
-            className={`p-6 rounded-full transition-all active:scale-95 shadow-2xl ${
-              isActive 
-                ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20" 
+            className={`p-6 rounded-full transition-all shadow-2xl border-2 ${
+              isActive
+                ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border-amber-500/30"
                 : isBreak
-                ? "bg-blue-500 text-white hover:bg-blue-400"
-                : "bg-emerald-500 text-black hover:bg-emerald-400"
+                ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white hover:from-blue-400 hover:to-cyan-400 border-blue-400/30"
+                : "bg-gradient-to-br from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 border-emerald-400/30"
             }`}
             title={isActive ? "Pause" : "Start"}
           >
-            {isActive ? (
-              <Pause size={24} fill="currentColor" />
-            ) : (
-              <Play size={24} fill="currentColor" />
-            )}
-          </button>
+            {isActive ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-0.5" />}
+          </motion.button>
 
           {/* Skip to break/next set */}
-          <button 
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={skipPhase}
-            className="p-2.5 rounded-full text-zinc-400 hover:bg-zinc-800 transition-all active:scale-95 hover:text-zinc-200"
+            className="p-2.5 rounded-full text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 transition-all"
             title="Skip phase"
           >
             <SkipForward size={20} />
-          </button>
+          </motion.button>
+        </motion.div>
 
-        </div>
-
-        {/* Sound & Spotify Controls */}
-        <div className="flex items-center gap-2 z-10">
-          {/* Spotify Music Toggle */}
-          <button 
-            onClick={() => setShowSpotifyDeck(!showSpotifyDeck)}
-            className={`p-2.5 rounded-full transition-all active:scale-95 ${
-              spotifyToken && showSpotifyDeck ? "text-[#1DB954] bg-[#1DB954]/10 shadow-lg shadow-[#1DB954]/20" : "text-zinc-400 hover:bg-zinc-800"
+        {/* Spotify Music Toggle */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="flex items-center gap-2 z-10"
+        >
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowPlayerBar(!showPlayerBar)}
+            className={`p-2.5 rounded-full transition-all ${
+              showPlayerBar
+                ? "text-[#1DB954] bg-[#1DB954]/10 shadow-lg shadow-[#1DB954]/20 border border-[#1DB954]/30"
+                : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
             }`}
-            title="Spotify Music"
+            title="Spotify Player"
           >
             <Headphones size={20} />
-          </button>
-        </div>
-      </div>
+          </motion.button>
+        </motion.div>
+      </motion.div>
 
-      {/* Spotify Deck - Shows when toggled */}
-      {showSpotifyDeck && (
-        <div className="z-50 pointer-events-auto">
-          <SpotifyDeck 
-            isMobile={isMobile}
-            onClose={() => setShowSpotifyDeck(false)}
+      {/* PlayerBar - Appears on the side */}
+      {showPlayerBar && (
+        <motion.div
+          initial={{ opacity: 0, x: 200 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 200 }}
+          className="z-30 md:fixed md:right-0 md:bottom-0 md:h-full md:w-80"
+        >
+          <PlayerBar
+            layout={isMobile ? "horizontal" : "expanded"}
+            onClose={() => setShowPlayerBar(false)}
           />
-        </div>
+        </motion.div>
       )}
 
-    </div>
+      {/* Legacy SpotifyDeck - Hidden by default, keep for backward compatibility */}
+      {showSpotifyDeck && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="z-50 pointer-events-auto">
+          <SpotifyDeck isMobile={isMobile} onClose={() => setShowSpotifyDeck(false)} />
+        </motion.div>
+      )}
+    </motion.div>
   );
 }

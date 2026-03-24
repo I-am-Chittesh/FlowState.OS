@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { LayoutGrid, Timer, CheckSquare, Settings } from "lucide-react";
 
 export default function MobileShell({ children }: { children: React.ReactNode }) {
@@ -18,10 +19,17 @@ export default function MobileShell({ children }: { children: React.ReactNode })
           <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-emerald-500/20 via-transparent to-indigo-500/10 blur-3xl animate-pulse opacity-30" />
         </div>
 
-        {/* MAIN CONTENT AREA - Scrollable */}
-        <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative z-10 w-full bg-black pb-20">
+        {/* MAIN CONTENT AREA - Scrollable with page transitions */}
+        <motion.main
+          key={pathname}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative z-10 w-full bg-black pb-20"
+        >
           {children}
-        </main>
+        </motion.main>
 
         {/* BOTTOM NAVIGATION - Sticky (Mobile only) */}
         {!isLoginPage && (
