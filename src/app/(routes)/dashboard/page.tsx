@@ -104,7 +104,7 @@ export default function DashboardPage() {
     visible: { 
       opacity: 1, 
       y: 0, 
-      transition: { type: "tween" as const, duration: 0.5, ease: "easeOut" as const }
+      transition: { duration: 0.5 }
     },
   };
 
