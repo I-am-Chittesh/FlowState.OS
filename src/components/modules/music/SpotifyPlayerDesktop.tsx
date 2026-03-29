@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { useSpotifyStore } from "../../../lib/store/useSpotifyStore";
 
 interface SpotifyPlayerDesktopProps {
   isPlaying?: boolean;
@@ -10,24 +11,98 @@ interface SpotifyPlayerDesktopProps {
 }
 
 export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }: SpotifyPlayerDesktopProps) {
-  const [isPlayerPlaying, setIsPlayerPlaying] = useState(isPlaying);
+  const { trackName, artistName, albumArt, isPlaying: storeIsPlaying, setIsPlaying } = useSpotifyStore();
   const [volume, setVolume] = useState(70);
   const [progress, setProgress] = useState(45);
+  const [progressTime, setProgressTime] = useState("0:00");
+  const [duration, setDuration] = useState("3:45");
 
-  const mockTrack = {
-    name: "Focus Flow",
-    artist: "Deep Study",
-    progressTime: "1:23",
-    duration: "3:45",
+  useEffect(() => {
+    // Poll for progress and duration updates
+    const pollProgress = async () => {
+      try {
+        const token = localStorage.getItem('spotify_token');
+        if (!token) return;
+
+        const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.item) {
+            const currentMs = data.progress_ms || 0;
+            const durationMs = data.item.duration_ms || 0;
+            setProgress((currentMs / durationMs) * 100 || 0);
+            setProgressTime(formatTime(currentMs));
+            setDuration(formatTime(durationMs));
+          }
+        }
+      } catch (err) {
+        console.debug('Progress poll error:', err);
+      }
+    };
+
+    const interval = setInterval(pollProgress, 1000);
+    pollProgress();
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handlePlayPause = () => {
-    setIsPlayerPlaying(!isPlayerPlaying);
-    onPlayPause?.();
+  const handlePlayPause = async () => {
+    const token = localStorage.getItem('spotify_token');
+    if (!token) return;
+
+    try {
+      const endpoint = storeIsPlaying 
+        ? 'https://api.spotify.com/v1/me/player/pause'
+        : 'https://api.spotify.com/v1/me/player/play';
+
+      await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      setIsPlaying(!storeIsPlaying);
+      onPlayPause?.();
+    } catch (err) {
+      console.error('Playback control error:', err);
+    }
   };
 
-  const handlePrevious = () => console.log("Previous track");
-  const handleNext = () => console.log("Next track");
+  const handlePrevious = async () => {
+    const token = localStorage.getItem('spotify_token');
+    if (!token) return;
+
+    try {
+      await fetch('https://api.spotify.com/v1/me/player/previous', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Previous track error:', err);
+    }
+  };
+
+  const handleNext = async () => {
+    const token = localStorage.getItem('spotify_token');
+    if (!token) return;
+
+    try {
+      await fetch('https://api.spotify.com/v1/me/player/next', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Next track error:', err);
+    }
+  };
 
   return (
     <motion.div
@@ -47,17 +122,23 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
           className="relative w-full aspect-square mb-8 rounded-2xl overflow-hidden bg-gradient-to-br from-orange-400 via-red-400 to-pink-400 shadow-lg"
           whileHover={{ scale: 1.02 }}
         >
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"
-            animate={isPlayerPlaying ? { opacity: [0.3, 0.5, 0.3] } : { opacity: 0.3 }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          <div className="w-full h-full flex items-center justify-center text-white text-6xl font-bold">
-            🎵
-          </div>
+          {albumArt ? (
+            <img src={albumArt} alt={trackName} className="w-full h-full object-cover" />
+          ) : (
+            <>
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"
+                animate={storeIsPlaying ? { opacity: [0.3, 0.5, 0.3] } : { opacity: 0.3 }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <div className="w-full h-full flex items-center justify-center text-white text-6xl font-bold">
+                🎵
+              </div>
+            </>
+          )}
 
           {/* Rotating Border Effect */}
-          {isPlayerPlaying && (
+          {storeIsPlaying && (
             <motion.div
               className="absolute inset-0 border-2 border-transparent border-t-emerald-400 border-r-teal-400 rounded-2xl"
               animate={{ rotate: 360 }}
@@ -68,8 +149,8 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
 
         {/* Track Info */}
         <div className="text-center mb-8 space-y-2">
-          <h3 className="text-white font-bold text-xl">{mockTrack.name}</h3>
-          <p className="text-emerald-400/80 text-sm font-medium">{mockTrack.artist}</p>
+          <h3 className="text-white font-bold text-xl line-clamp-2">{trackName || "Not Playing"}</h3>
+          <p className="text-emerald-400/80 text-sm font-medium">{artistName || "Spotify"}</p>
         </div>
 
         {/* Progress Bar */}
@@ -86,8 +167,8 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
             />
           </motion.div>
           <div className="flex justify-between text-xs text-zinc-400">
-            <span>{mockTrack.progressTime}</span>
-            <span>{mockTrack.duration}</span>
+            <span>{progressTime}</span>
+            <span>{duration}</span>
           </div>
         </div>
 
@@ -108,7 +189,7 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
             onClick={handlePlayPause}
             className="p-4 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg hover:shadow-emerald-500/50"
           >
-            {isPlayerPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" />}
+            {storeIsPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" />}
           </motion.button>
 
           <motion.button

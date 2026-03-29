@@ -1,33 +1,108 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, SkipForward, SkipBack, Volume2, X } from "lucide-react";
+import { useSpotifyStore } from "../../../lib/store/useSpotifyStore";
 
 interface PlayerBarProps {
   layout?: "horizontal" | "expanded"; // horizontal mini player, expanded full player
   onClose?: () => void;
 }
 
-// Mock track data for demonstration
-const mockTrack = {
-  name: "Sample Track",
-  artist: "Sample Artist",
-  image: undefined,
-  progress: 45,
-  progressTime: "1:23",
-  duration: "3:45",
-};
-
 export default function PlayerBar({ layout = "horizontal", onClose }: PlayerBarProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { trackName, artistName, albumArt, isPlaying: storeIsPlaying, setIsPlaying } = useSpotifyStore();
   const [isExpanded, setIsExpanded] = useState(layout === "expanded");
   const [volume, setVolume] = useState(70);
-  const currentTrack = mockTrack;
+  const [progress, setProgress] = useState(45);
+  const [progressTime, setProgressTime] = useState("0:00");
+  const [duration, setDuration] = useState("3:45");
 
-  const togglePlayPause = () => setIsPlaying(!isPlaying);
-  const nextTrack = () => console.log("Next track");
-  const prevTrack = () => console.log("Previous track");
+  useEffect(() => {
+    // Poll for progress and duration updates
+    const pollProgress = async () => {
+      try {
+        const token = localStorage.getItem('spotify_token');
+        if (!token) return;
+
+        const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.item) {
+            const currentMs = data.progress_ms || 0;
+            const durationMs = data.item.duration_ms || 0;
+            setProgress((currentMs / durationMs) * 100 || 0);
+            setProgressTime(formatTime(currentMs));
+            setDuration(formatTime(durationMs));
+          }
+        }
+      } catch (err) {
+        console.debug('Progress poll error:', err);
+      }
+    };
+
+    const interval = setInterval(pollProgress, 1000);
+    pollProgress();
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const togglePlayPause = async () => {
+    const token = localStorage.getItem('spotify_token');
+    if (!token) return;
+
+    try {
+      const endpoint = storeIsPlaying 
+        ? 'https://api.spotify.com/v1/me/player/pause'
+        : 'https://api.spotify.com/v1/me/player/play';
+
+      await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      setIsPlaying(!storeIsPlaying);
+    } catch (err) {
+      console.error('Playback control error:', err);
+    }
+  };
+
+  const nextTrack = async () => {
+    const token = localStorage.getItem('spotify_token');
+    if (!token) return;
+
+    try {
+      await fetch('https://api.spotify.com/v1/me/player/next', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Next track error:', err);
+    }
+  };
+
+  const prevTrack = async () => {
+    const token = localStorage.getItem('spotify_token');
+    if (!token) return;
+
+    try {
+      await fetch('https://api.spotify.com/v1/me/player/previous', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error('Previous track error:', err);
+    }
+  };
 
   // Horizontal mini player (for mobile timer)
   if (layout === "horizontal" && !isExpanded) {
@@ -41,15 +116,19 @@ export default function PlayerBar({ layout = "horizontal", onClose }: PlayerBarP
         {/* Track Info with Album Art */}
         <div className="flex items-center gap-4 min-w-0">
           {/* Album Thumbnail */}
-          <motion.div className="w-14 h-14 rounded-lg bg-gradient-to-br from-orange-400 via-red-400 to-pink-400 flex-shrink-0 shadow-lg flex items-center justify-center text-xl">
-            🎵
+          <motion.div className="w-14 h-14 rounded-lg flex-shrink-0 shadow-lg flex items-center justify-center text-xl overflow-hidden bg-gradient-to-br from-orange-400 via-red-400 to-pink-400">
+            {albumArt ? (
+              <img src={albumArt} alt={trackName} className="w-full h-full object-cover" />
+            ) : (
+              <span>🎵</span>
+            )}
           </motion.div>
 
           {/* Track Details */}
           <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-bold truncate">{currentTrack.name}</p>
-            <p className="text-emerald-400/70 text-xs truncate">{currentTrack.artist}</p>
-            <div className="text-xs text-zinc-500 mt-1">{currentTrack.progressTime} / {currentTrack.duration}</div>
+            <p className="text-white text-sm font-bold truncate">{trackName || "Not Playing"}</p>
+            <p className="text-emerald-400/70 text-xs truncate">{artistName || "Spotify"}</p>
+            <div className="text-xs text-zinc-500 mt-1">{progressTime} / {duration}</div>
           </div>
         </div>
 
@@ -57,7 +136,7 @@ export default function PlayerBar({ layout = "horizontal", onClose }: PlayerBarP
         <motion.div className="w-full h-1 bg-zinc-800/50 rounded-full overflow-hidden backdrop-blur">
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: `${currentTrack.progress}%` }}
+            animate={{ width: `${progress}%` }}
             className="h-full bg-gradient-to-r from-emerald-500 to-teal-500"
           />
         </motion.div>
@@ -79,7 +158,7 @@ export default function PlayerBar({ layout = "horizontal", onClose }: PlayerBarP
             onClick={togglePlayPause}
             className="bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white p-2.5 rounded-full transition-all shadow-lg shadow-emerald-500/30"
           >
-            {isPlaying ? <Pause size={18} fill="white" /> : <Play size={18} fill="white" className="ml-0.5" />}
+            {storeIsPlaying ? <Pause size={18} fill="white" /> : <Play size={18} fill="white" className="ml-0.5" />}
           </motion.button>
 
           <motion.button
@@ -125,30 +204,32 @@ export default function PlayerBar({ layout = "horizontal", onClose }: PlayerBarP
         </motion.button>
 
         {/* Album Art */}
-        {currentTrack.image && (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="relative mx-auto w-48 h-48 rounded-xl shadow-2xl overflow-hidden"
-          >
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="relative mx-auto w-48 h-48 rounded-xl shadow-2xl overflow-hidden bg-gradient-to-br from-orange-400 via-red-400 to-pink-400 flex items-center justify-center"
+        >
+          {albumArt ? (
             <img
-              src={currentTrack.image}
-              alt={currentTrack.name}
+              src={albumArt}
+              alt={trackName}
               className="w-full h-full object-cover"
             />
-            <motion.div
-              animate={{ rotate: isPlaying ? 360 : 0 }}
-              transition={{ duration: isPlaying ? 3 : 1, repeat: isPlaying ? Infinity : 0, ease: "linear" }}
-              className="absolute inset-0 border-4 border-emerald-500/30 rounded-xl"
-            />
-          </motion.div>
-        )}
+          ) : (
+            <div className="text-white text-6xl">🎵</div>
+          )}
+          <motion.div
+            animate={{ rotate: storeIsPlaying ? 360 : 0 }}
+            transition={{ duration: storeIsPlaying ? 3 : 1, repeat: storeIsPlaying ? Infinity : 0, ease: "linear" }}
+            className="absolute inset-0 border-4 border-emerald-500/30 rounded-xl"
+          />
+        </motion.div>
 
         {/* Track Info */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-center space-y-2">
-          <h2 className="text-2xl font-bold text-white">{currentTrack.name}</h2>
-          <p className="text-zinc-400">{currentTrack.artist}</p>
+          <h2 className="text-2xl font-bold text-white line-clamp-2">{trackName || "Not Playing"}</h2>
+          <p className="text-zinc-400">{artistName || "Spotify"}</p>
         </motion.div>
 
         {/* Progress Bar */}
@@ -156,13 +237,13 @@ export default function PlayerBar({ layout = "horizontal", onClose }: PlayerBarP
           <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden cursor-pointer group">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${currentTrack.progress}%` }}
+              animate={{ width: `${progress}%` }}
               className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 group-hover:from-emerald-400 group-hover:to-teal-400 transition-colors"
             />
           </div>
           <div className="flex justify-between text-xs text-zinc-500 font-medium">
-            <span>{currentTrack.progressTime || "0:00"}</span>
-            <span>{currentTrack.duration || "0:00"}</span>
+            <span>{progressTime}</span>
+            <span>{duration}</span>
           </div>
         </motion.div>
 
@@ -204,7 +285,7 @@ export default function PlayerBar({ layout = "horizontal", onClose }: PlayerBarP
             onClick={togglePlayPause}
             className="bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white p-4 rounded-full transition-all shadow-lg shadow-emerald-500/30"
           >
-            {isPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
+            {storeIsPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
           </motion.button>
 
           <motion.button
