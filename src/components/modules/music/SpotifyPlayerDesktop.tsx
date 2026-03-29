@@ -112,14 +112,14 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
     >
       {/* Glassmorphic Player Card - Liquid Glass Effect */}
       <motion.div
-        className="w-full max-w-2xl backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-10 shadow-2xl"
+        className="w-full max-w-sm backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-6 shadow-2xl"
         initial={{ scale: 0.95 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
         {/* Album Art Container */}
         <motion.div
-          className="relative w-full aspect-square mb-8 rounded-2xl overflow-hidden backdrop-blur-lg bg-white/20 border border-white/30 shadow-lg"
+          className="relative w-full aspect-square mb-5 rounded-2xl overflow-hidden backdrop-blur-lg bg-white/20 border border-white/30 shadow-lg"
           whileHover={{ scale: 1.02 }}
         >
           {albumArt ? (
@@ -148,13 +148,13 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
         </motion.div>
 
         {/* Track Info */}
-        <div className="text-center mb-8 space-y-2">
-          <h3 className="text-white font-bold text-xl line-clamp-2">{trackName || "Not Playing"}</h3>
-          <p className="text-white/70 text-sm font-medium">{artistName || "Spotify"}</p>
+        <div className="text-center mb-4 space-y-1">
+          <h3 className="text-white font-bold text-lg line-clamp-2">{trackName || "Not Playing"}</h3>
+          <p className="text-white/70 text-xs font-medium">{artistName || "Spotify"}</p>
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-6 space-y-2">
+        <div className="mb-5 space-y-1">
           <motion.div
             className="h-1 bg-white/20 rounded-full overflow-hidden backdrop-blur"
             whileHover={{ height: 4 }}
@@ -173,7 +173,7 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-6 mb-8">
+        <div className="flex items-center justify-center gap-5 mb-0">
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
@@ -202,32 +202,7 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
           </motion.button>
         </div>
 
-        {/* Volume Control */}
-        <div className="space-y-3 pt-6 border-t border-white/20">
-          <div className="flex items-center gap-3">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 rounded-full hover:bg-white/20 transition-colors text-white/80 hover:text-white"
-            >
-              {volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
-            </motion.button>
 
-            <motion.div className="flex-1 relative group">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-white"
-              />
-              <div className="text-xs text-white/60 group-hover:text-white transition-colors">
-                {volume}%
-              </div>
-            </motion.div>
-          </div>
-        </div>
       </motion.div>
 
       {/* Subtle Glow Background */}
