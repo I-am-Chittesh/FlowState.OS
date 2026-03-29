@@ -33,77 +33,70 @@ export default function PlayerBar({ layout = "horizontal", onClose }: PlayerBarP
   if (layout === "horizontal" && !isExpanded) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 20 }}
-        className="fixed bottom-24 md:bottom-0 md:right-0 left-0 md:w-80 bg-gradient-to-t from-black via-zinc-950 to-zinc-900 border border-zinc-800 rounded-t-2xl md:rounded-l-2xl md:rounded-t-none p-4 space-y-3 z-40"
+        exit={{ opacity: 0, y: 50 }}
+        className="w-full backdrop-blur-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-2xl p-5 space-y-4 z-40 mx-3 mb-4"
       >
-        {/* Track Info */}
-        <div className="flex items-center gap-3 min-w-0">
-          {currentTrack.image && (
-            <motion.img
-              src={currentTrack.image}
-              alt={currentTrack.name}
-              className="w-12 h-12 rounded-lg shadow-lg flex-shrink-0 object-cover"
-            />
-          )}
+        {/* Track Info with Album Art */}
+        <div className="flex items-center gap-4 min-w-0">
+          {/* Album Thumbnail */}
+          <motion.div className="w-14 h-14 rounded-lg bg-gradient-to-br from-orange-400 via-red-400 to-pink-400 flex-shrink-0 shadow-lg flex items-center justify-center text-xl">
+            🎵
+          </motion.div>
+
+          {/* Track Details */}
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-bold truncate">{currentTrack.name}</p>
-            <p className="text-zinc-400 text-xs truncate">{currentTrack.artist}</p>
+            <p className="text-emerald-400/70 text-xs truncate">{currentTrack.artist}</p>
+            <div className="text-xs text-zinc-500 mt-1">{currentTrack.progressTime} / {currentTrack.duration}</div>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsExpanded(true)}
-            className="text-zinc-500 hover:text-white transition-colors flex-shrink-0"
-          >
-            <Volume2 size={18} />
-          </motion.button>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+        <motion.div className="w-full h-1 bg-zinc-800/50 rounded-full overflow-hidden backdrop-blur">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${currentTrack.progress}%` }}
             className="h-full bg-gradient-to-r from-emerald-500 to-teal-500"
           />
-        </div>
+        </motion.div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-2">
           <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.9 }}
             onClick={prevTrack}
-            className="text-zinc-400 hover:text-white transition-colors"
+            className="text-emerald-400/60 hover:text-emerald-400 transition-colors"
           >
-            <SkipBack size={16} />
+            <SkipBack size={18} />
           </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.15 }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.9 }}
             onClick={togglePlayPause}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-full transition-colors"
+            className="bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white p-2.5 rounded-full transition-all shadow-lg shadow-emerald-500/30"
           >
-            {isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+            {isPlaying ? <Pause size={18} fill="white" /> : <Play size={18} fill="white" className="ml-0.5" />}
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.9 }}
             onClick={nextTrack}
-            className="text-zinc-400 hover:text-white transition-colors"
+            className="text-emerald-400/60 hover:text-emerald-400 transition-colors"
           >
-            <SkipForward size={16} />
+            <SkipForward size={18} />
           </motion.button>
 
+          {/* Close */}
           <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.9 }}
             onClick={onClose}
-            className="text-zinc-600 hover:text-zinc-400 transition-colors"
+            className="text-zinc-500 hover:text-zinc-300 transition-colors ml-auto"
           >
             <X size={16} />
           </motion.button>
