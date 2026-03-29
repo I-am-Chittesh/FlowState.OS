@@ -183,12 +183,34 @@ export default function TimerPage() {
             </motion.button>
           </motion.div>
 
+          {/* Headphone Button - Toggle Spotify Player */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35 }}
+            className="z-10 pt-2"
+          >
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowPlayerBar(!showPlayerBar)}
+              className={`p-3 rounded-full transition-all ${
+                showPlayerBar
+                  ? "text-white bg-white/20 shadow-lg shadow-white/20 border border-white/40 backdrop-blur-md"
+                  : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+              }`}
+              title="Toggle Spotify Player"
+            >
+              <Headphones size={20} />
+            </motion.button>
+          </motion.div>
+
           {/* Spotify Music Toggle - Only on Mobile */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="flex items-center gap-2 z-10 md:hidden"
+            className="flex items-center gap-2 z-10 md:hidden hidden"
           >
             <motion.button
               whileHover={{ scale: 1.1 }}

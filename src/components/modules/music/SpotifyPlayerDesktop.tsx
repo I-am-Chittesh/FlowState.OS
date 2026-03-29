@@ -110,16 +110,16 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
       animate={{ opacity: 1, x: 0 }}
       className="h-full flex flex-col items-center justify-center p-6 gap-8"
     >
-      {/* Glassmorphic Player Card */}
+      {/* Glassmorphic Player Card - Liquid Glass Effect */}
       <motion.div
-        className="w-full max-w-sm backdrop-blur-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-3xl p-8 shadow-2xl"
+        className="w-full max-w-2xl backdrop-blur-2xl bg-white/10 border border-white/20 rounded-3xl p-10 shadow-2xl"
         initial={{ scale: 0.95 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
         {/* Album Art Container */}
         <motion.div
-          className="relative w-full aspect-square mb-8 rounded-2xl overflow-hidden bg-gradient-to-br from-orange-400 via-red-400 to-pink-400 shadow-lg"
+          className="relative w-full aspect-square mb-8 rounded-2xl overflow-hidden backdrop-blur-lg bg-white/20 border border-white/30 shadow-lg"
           whileHover={{ scale: 1.02 }}
         >
           {albumArt ? (
@@ -127,8 +127,8 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
           ) : (
             <>
               <motion.div
-                className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"
-                animate={storeIsPlaying ? { opacity: [0.3, 0.5, 0.3] } : { opacity: 0.3 }}
+                className="absolute inset-0 bg-black/20"
+                animate={storeIsPlaying ? { opacity: [0.2, 0.4, 0.2] } : { opacity: 0.2 }}
                 transition={{ duration: 2, repeat: Infinity }}
               />
               <div className="w-full h-full flex items-center justify-center text-white text-6xl font-bold">
@@ -140,7 +140,7 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
           {/* Rotating Border Effect */}
           {storeIsPlaying && (
             <motion.div
-              className="absolute inset-0 border-2 border-transparent border-t-emerald-400 border-r-teal-400 rounded-2xl"
+              className="absolute inset-0 border-2 border-transparent border-t-white border-r-white/50 rounded-2xl"
               animate={{ rotate: 360 }}
               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
             />
@@ -150,23 +150,23 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
         {/* Track Info */}
         <div className="text-center mb-8 space-y-2">
           <h3 className="text-white font-bold text-xl line-clamp-2">{trackName || "Not Playing"}</h3>
-          <p className="text-emerald-400/80 text-sm font-medium">{artistName || "Spotify"}</p>
+          <p className="text-white/70 text-sm font-medium">{artistName || "Spotify"}</p>
         </div>
 
         {/* Progress Bar */}
         <div className="mb-6 space-y-2">
           <motion.div
-            className="h-1 bg-zinc-700/50 rounded-full overflow-hidden backdrop-blur"
+            className="h-1 bg-white/20 rounded-full overflow-hidden backdrop-blur"
             whileHover={{ height: 4 }}
           >
             <motion.div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+              className="h-full bg-white rounded-full"
               initial={{ width: "0%" }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.5 }}
             />
           </motion.div>
-          <div className="flex justify-between text-xs text-zinc-400">
+          <div className="flex justify-between text-xs text-white/60">
             <span>{progressTime}</span>
             <span>{duration}</span>
           </div>
@@ -178,7 +178,7 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={handlePrevious}
-            className="p-3 rounded-full hover:bg-emerald-500/20 transition-colors text-emerald-400"
+            className="p-3 rounded-full hover:bg-white/20 transition-colors text-white/80 hover:text-white"
           >
             <SkipBack size={24} />
           </motion.button>
@@ -187,7 +187,7 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={handlePlayPause}
-            className="p-4 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg hover:shadow-emerald-500/50"
+            className="p-4 rounded-full backdrop-blur-md bg-white/30 border border-white/40 text-white shadow-lg hover:bg-white/40 transition-colors"
           >
             {storeIsPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" />}
           </motion.button>
@@ -196,19 +196,19 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleNext}
-            className="p-3 rounded-full hover:bg-emerald-500/20 transition-colors text-emerald-400"
+            className="p-3 rounded-full hover:bg-white/20 transition-colors text-white/80 hover:text-white"
           >
             <SkipForward size={24} />
           </motion.button>
         </div>
 
         {/* Volume Control */}
-        <div className="space-y-3 pt-6 border-t border-emerald-500/20">
+        <div className="space-y-3 pt-6 border-t border-white/20">
           <div className="flex items-center gap-3">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              className="p-2 rounded-full hover:bg-emerald-500/20 transition-colors text-emerald-400"
+              className="p-2 rounded-full hover:bg-white/20 transition-colors text-white/80 hover:text-white"
             >
               {volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
             </motion.button>
@@ -220,9 +220,9 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
                 max="100"
                 value={volume}
                 onChange={(e) => setVolume(Number(e.target.value))}
-                className="w-full h-1 bg-zinc-700/50 rounded-full appearance-none cursor-pointer accent-emerald-500"
+                className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-white"
               />
-              <div className="text-xs text-zinc-400 group-hover:text-emerald-400 transition-colors">
+              <div className="text-xs text-white/60 group-hover:text-white transition-colors">
                 {volume}%
               </div>
             </motion.div>
@@ -233,12 +233,12 @@ export default function SpotifyPlayerDesktop({ isPlaying = false, onPlayPause }:
       {/* Subtle Glow Background */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <motion.div
-          className="absolute top-1/2 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"
+          className="absolute top-1/2 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl\"
           animate={{ y: [0, 50, 0] }}
           transition={{ duration: 6, repeat: Infinity }}
         />
         <motion.div
-          className="absolute bottom-0 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl"
+          className="absolute bottom-0 left-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl"
           animate={{ y: [50, 0, 50] }}
           transition={{ duration: 8, repeat: Infinity }}
         />
