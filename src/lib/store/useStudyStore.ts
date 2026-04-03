@@ -78,6 +78,7 @@ interface StudyState {
   fetchData: () => Promise<void>;
   addGoal: (title: string, deadline: Date, color: string) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
+  deleteExpiredGoals: () => Promise<void>; // Auto-delete goals past their deadline
   addTask: (title: string, goalId: string | null) => Promise<void>;
   toggleTask: (id: string, completed: boolean) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
@@ -371,6 +372,19 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       userName: profileData?.full_name || user.user_metadata?.full_name || "User",
       spotifyToken: spotifyToken
     });
+
+    // Clean up expired goals (and their tasks) after loading data
+    await get().deleteExpiredGoals();
+  },
+
+  deleteExpiredGoals: async () => {
+    const { goals } = get();
+    const expiredGoals = goals.filter(goal => getDaysRemaining(goal.deadline) <= 0);
+    
+    // Delete each expired goal (this also removes associated tasks)
+    for (const goal of expiredGoals) {
+      await get().deleteGoal(goal.id);
+    }
   },
 
   addGoal: async (title, deadline, color) => {
