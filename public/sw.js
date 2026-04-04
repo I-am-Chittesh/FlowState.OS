@@ -15,6 +15,78 @@ self.addEventListener('fetch', (event) => {
   // This allows the app to work offline in the future
 });
 
+/**
+ * Handle push notifications
+ */
+self.addEventListener('push', (event) => {
+  console.log('📬 Push notification received');
+
+  if (!event.data) {
+    console.warn('⚠️ Push notification has no data');
+    return;
+  }
+
+  try {
+    const data = event.data.json();
+    console.log('📨 Notification data:', data);
+
+    const options = {
+      body: data.body || 'FlowState Reminder',
+      icon: data.icon || '/icon-192.svg',
+      badge: data.badge || '/icon-192.svg',
+      tag: data.tag || 'flowstate-notification',
+      data: data.data || {},
+      requireInteraction: true,
+      actions: [
+        { action: 'open', title: 'Open' },
+        { action: 'close', title: 'Close' },
+      ],
+    };
+
+    event.waitUntil(
+      self.registration.showNotification(data.title || 'FlowState', options)
+    );
+  } catch (error) {
+    console.error('❌ Error processing push notification:', error);
+  }
+});
+
+/**
+ * Handle notification clicks
+ */
+self.addEventListener('notificationclick', (event) => {
+  console.log('👆 Notification clicked:', event.notification.tag);
+
+  event.notification.close();
+
+  if (event.action === 'close') {
+    return;
+  }
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (let i = 0; i < clientList.length; i++) {
+          const client = clientList[i];
+          if (client.url === '/' && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        if (clients.openWindow) {
+          return clients.openWindow('/tasks');
+        }
+      })
+  );
+});
+
+/**
+ * Handle notification close
+ */
+self.addEventListener('notificationclose', (event) => {
+  console.log('❌ Notification closed:', event.notification.tag);
+});
+
 // Store reminders in IndexedDB for persistence
 const DB_NAME = 'FlowStateDB';
 const STORE_NAME = 'reminders';

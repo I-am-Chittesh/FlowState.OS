@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '../supabase';
 import { getPressureIndex, getUrgencyTag, getDaysRemaining } from '../calculations';
 import { Reminder } from '../../types';
-import { registerReminder } from '../notifications/notificationService';
+import { subscribeToNotifications } from '../notifications/pushService';
 
 // --- TYPES ---
 export interface Goal {
@@ -476,19 +476,10 @@ export const useStudyStore = create<StudyState>((set, get) => ({
     
     set({ reminders });
 
-    // Register each reminder with the service worker
-    const { tasks } = get();
-    reminders.forEach((reminder) => {
-      const task = tasks.find(t => t.id === reminder.task_id);
-      const taskTitle = task?.title || 'Task';
-      
-      registerReminder({
-        id: reminder.id,
-        task_id: reminder.task_id,
-        task_title: taskTitle,
-        reminder_time: reminder.reminder_time.toISOString(),
-        is_sent: reminder.is_sent
-      }).catch(error => console.error('Failed to register reminder:', error));
+    // In the new Web Push system, reminders are checked server-side
+    // Just ensure the user is subscribed to push notifications
+    await subscribeToNotifications().catch(error => {
+      console.warn('⚠️ Could not ensure push subscription during fetchReminders:', error);
     });
   },
 
@@ -557,17 +548,11 @@ export const useStudyStore = create<StudyState>((set, get) => ({
         ]
       }));
 
-      console.log('📡 Registering with service worker...');
+      console.log('📡 Ensuring push subscription is active...');
 
-      // Register with service worker immediately
-      await registerReminder({
-        id: data.id,
-        task_id: taskId,
-        task_title: taskTitle,
-        reminder_time: reminderTime.toISOString(),
-        is_sent: false
-      }).catch(error => {
-        console.error('❌ Service worker registration failed:', error);
+      // Ensure user is subscribed to push notifications
+      await subscribeToNotifications().catch(error => {
+        console.warn('⚠️ Could not ensure push subscription:', error);
         // Don't throw, the reminder is still saved in DB
       });
 
