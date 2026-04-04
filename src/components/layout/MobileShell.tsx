@@ -11,10 +11,20 @@ export default function MobileShell({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   useEffect(() => {
-    // Initialize Web Push notifications on app startup
-    initPushNotifications().catch((error) => {
-      console.warn("⚠️ Failed to initialize push notifications:", error);
-    });
+    // Register service worker first
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('✅ Service Worker registered:', registration);
+          // Then initialize push notifications
+          initPushNotifications().catch((error) => {
+            console.warn("⚠️ Failed to initialize push notifications:", error);
+          });
+        })
+        .catch((error) => {
+          console.error('❌ Service Worker registration failed:', error);
+        });
+    }
   }, []);
 
   const isLoginPage = pathname === "/login" || pathname === "/callback";

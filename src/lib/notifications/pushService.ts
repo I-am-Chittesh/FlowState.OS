@@ -25,6 +25,8 @@ export async function subscribeToNotifications(): Promise<boolean> {
 
     // Request permission
     const permission = await Notification.requestPermission();
+    console.log('📋 Notification permission result:', permission);
+    
     if (permission !== 'granted') {
       console.warn('⚠️ Notification permission denied');
       return false;
@@ -32,9 +34,15 @@ export async function subscribeToNotifications(): Promise<boolean> {
 
     console.log('✅ Permission granted');
 
-    // Get service worker registration
-    const registration = await navigator.serviceWorker.ready;
-    console.log('✅ Service worker ready');
+    // Wait for service worker to be ready
+    let registration;
+    try {
+      registration = await navigator.serviceWorker.ready;
+      console.log('✅ Service worker ready');
+    } catch (swError) {
+      console.error('❌ Service worker not ready:', swError);
+      return false;
+    }
 
     // Subscribe to push
     console.log('📤 Subscribing to push notifications...');
@@ -42,30 +50,44 @@ export async function subscribeToNotifications(): Promise<boolean> {
     // Get VAPID public key from environment
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidPublicKey) {
-      console.error('❌ VAPID public key not found');
+      console.error('❌ VAPID public key not found in environment');
       return false;
     }
 
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
-    });
+    console.log('🔑 VAPID public key found:', vapidPublicKey.substring(0, 20) + '...');
+
+    let subscription;
+    try {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
+      });
+    } catch (subscribeError) {
+      console.error('❌ Failed to create push subscription:', subscribeError);
+      return false;
+    }
 
     console.log('✅ Subscription created:', subscription.endpoint);
 
-    // Save subscription to Supabase
+    // Check if user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error('❌ No user authenticated');
+      console.error('❌ No user authenticated - cannot save subscription');
       return false;
     }
 
+    console.log('👤 User authenticated:', user.id);
+
+    const subscriptionData = {
+      user_id: user.id,
+      subscription: subscription.toJSON(),
+    };
+
+    console.log('💾 Saving subscription to Supabase...');
+
     const { error } = await supabase
       .from('push_subscriptions')
-      .upsert({
-        user_id: user.id,
-        subscription: subscription.toJSON(),
-      });
+      .upsert(subscriptionData);
 
     if (error) {
       console.error('❌ Failed to save subscription to Supabase:', error);
