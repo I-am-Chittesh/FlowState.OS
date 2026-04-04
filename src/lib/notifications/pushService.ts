@@ -85,9 +85,16 @@ export async function subscribeToNotifications(): Promise<boolean> {
 
     console.log('💾 Saving subscription to Supabase...');
 
+    // First, try to delete existing subscription for this user
+    await supabase
+      .from('push_subscriptions')
+      .delete()
+      .eq('user_id', user.id);
+
+    // Then insert the new subscription
     const { error } = await supabase
       .from('push_subscriptions')
-      .upsert(subscriptionData);
+      .insert(subscriptionData);
 
     if (error) {
       console.error('❌ Failed to save subscription to Supabase:', error);
