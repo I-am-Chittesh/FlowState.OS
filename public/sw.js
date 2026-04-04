@@ -118,8 +118,8 @@ function scheduleReminder(reminder) {
   // On mobile: don't use setTimeout (dies when app closes)
   // Instead rely on periodic checks and background sync
   
-  if (delay <= 0 && delay > -60000) {
-    // Fire immediately if within 1 minute window
+  if (delay <= 0 && delay > -2000) {
+    // Fire immediately if within 2 seconds of reminder time
     console.log('⚡ Firing reminder immediately (close to reminder time)');
     fireNotification(reminder);
   } else if (delay > 0) {
@@ -200,8 +200,8 @@ setInterval(async () => {
       const reminderTime = new Date(reminder.reminder_time).getTime();
       const timeDiff = reminderTime - now;
       
-      // Fire if within 1 minute window and not yet sent
-      if (reminderTime <= now && reminderTime > now - 60000 && !reminder.is_sent) {
+      // Fire if at the reminder time (within 2 seconds) and not yet sent
+      if (reminderTime <= now && reminderTime > now - 2000 && !reminder.is_sent) {
         console.log(`🔔 Firing overdue reminder: ${reminder.task_title}`);
         fireNotification(reminder);
         firedCount++;
@@ -288,7 +288,7 @@ self.addEventListener('periodicsync', (event) => {
             const reminderTime = new Date(reminder.reminder_time).getTime();
             
             // Fire if within 1 minute window and not already sent
-            if (reminderTime <= now && reminderTime > now - 60000 && !reminder.is_sent) {
+            if (reminderTime <= now && reminderTime > now - 2000 && !reminder.is_sent) {
               console.log(`🔔 Periodic sync firing: ${reminder.task_title}`);
               fireNotification(reminder);
               firedCount++;
