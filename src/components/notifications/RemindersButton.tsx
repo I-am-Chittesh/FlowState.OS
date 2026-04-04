@@ -21,20 +21,26 @@ export default function RemindersButton({ taskId }: RemindersButtonProps) {
   const handleAddReminder = async (reminderTime: Date) => {
     setIsLoading(true);
     try {
+      console.log('📌 Starting reminder creation for task:', taskId);
+      
       // Request notification permission first
       const hasPermission = await requestNotificationPermission();
+      console.log('✅ Notification permission:', hasPermission);
+      
       if (!hasPermission) {
         alert("Notifications are disabled. Please enable them in your browser settings.");
         setIsLoading(false);
         return;
       }
 
+      console.log('📌 Adding reminder at:', reminderTime);
       // Add reminder - this now handles service worker registration
       await addReminder(taskId, reminderTime);
       
+      console.log('✅ Reminder added successfully');
       setIsModalOpen(false);
     } catch (error) {
-      console.error("Failed to add reminder:", error);
+      console.error("❌ Failed to add reminder:", error);
       alert("Failed to set reminder. Please try again.");
     } finally {
       setIsLoading(false);

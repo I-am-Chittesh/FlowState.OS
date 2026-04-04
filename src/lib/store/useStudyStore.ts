@@ -493,26 +493,45 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   },
 
   addReminder: async (taskId, reminderTime) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ No authenticated user found');
+        throw new Error('User not authenticated');
+      }
 
-    // Get task title from current state
-    const { tasks } = get();
-    const task = tasks.find(t => t.id === taskId);
-    const taskTitle = task?.title || 'Task';
+      console.log('👤 User authenticated:', user.id);
 
-    const { data, error } = await supabase
-      .from('reminders')
-      .insert({
-        user_id: user.id,
-        task_id: taskId,
-        reminder_time: reminderTime.toISOString(),
-        is_sent: false
-      })
-      .select()
-      .single();
+      // Get task title from current state
+      const { tasks } = get();
+      const task = tasks.find(t => t.id === taskId);
+      const taskTitle = task?.title || 'Task';
 
-    if (!error && data) {
+      console.log('📝 Creating reminder for task:', taskTitle);
+
+      const { data, error } = await supabase
+        .from('reminders')
+        .insert({
+          user_id: user.id,
+          task_id: taskId,
+          reminder_time: reminderTime.toISOString(),
+          is_sent: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.error('❌ No data returned from Supabase');
+        throw new Error('No data returned from insert');
+      }
+
+      console.log('✅ Reminder saved to Supabase:', data);
+
       const newReminder = {
         ...data,
         reminder_time: new Date(data.reminder_time),
@@ -527,6 +546,8 @@ export const useStudyStore = create<StudyState>((set, get) => ({
         ]
       }));
 
+      console.log('📡 Registering with service worker...');
+
       // Register with service worker immediately
       await registerReminder({
         id: data.id,
@@ -534,7 +555,15 @@ export const useStudyStore = create<StudyState>((set, get) => ({
         task_title: taskTitle,
         reminder_time: reminderTime.toISOString(),
         is_sent: false
-      }).catch(error => console.error('Failed to register reminder with service worker:', error));
+      }).catch(error => {
+        console.error('❌ Service worker registration failed:', error);
+        // Don't throw, the reminder is still saved in DB
+      });
+
+      console.log('✅ Reminder fully processed');
+    } catch (error) {
+      console.error('❌ addReminder error:', error);
+      throw error;
     }
   },
 

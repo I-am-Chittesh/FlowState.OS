@@ -45,14 +45,17 @@ export function isNotificationSupported(): boolean {
  */
 export async function registerReminder(reminder: ReminderData): Promise<void> {
   if (!isNotificationSupported()) {
-    console.warn('Notifications are not supported in this browser');
+    console.warn('⚠️ Notifications are not supported in this browser');
     return;
   }
 
   try {
+    console.log('🔄 Waiting for service worker...');
     const registration = await navigator.serviceWorker.ready;
+    console.log('✅ Service worker ready');
     
     if (navigator.serviceWorker.controller) {
+      console.log('📤 Posting REGISTER_REMINDER to service worker:', reminder);
       navigator.serviceWorker.controller.postMessage({
         type: 'REGISTER_REMINDER',
         reminder: {
@@ -60,11 +63,14 @@ export async function registerReminder(reminder: ReminderData): Promise<void> {
           reminder_time: new Date(reminder.reminder_time).toISOString()
         }
       });
+      console.log('✅ Message posted to service worker');
+    } else {
+      console.warn('⚠️ No service worker controller active');
     }
     
-    console.log('Reminder registered with service worker:', reminder);
+    console.log('✅ Reminder registered with service worker:', reminder);
   } catch (error) {
-    console.error('Failed to register reminder with service worker:', error);
+    console.error('❌ Failed to register reminder with service worker:', error);
     throw error;
   }
 }
@@ -141,20 +147,24 @@ export async function showInactivityNotification(daysSinceOpened: number): Promi
  */
 export async function initializeNotifications(): Promise<void> {
   if (!isNotificationSupported()) {
-    console.warn('Notifications are not supported');
+    console.warn('⚠️ Notifications are not supported');
     return;
   }
 
   try {
+    console.log('🚀 Initializing notifications...');
+    
     // Request permission proactively
-    await requestNotificationPermission();
+    const hasPermission = await requestNotificationPermission();
+    console.log('✅ Notification permission:', hasPermission ? 'GRANTED' : 'DENIED');
     
     // Register service worker if not already registered
     if ('serviceWorker' in navigator) {
+      console.log('📝 Registering service worker...');
       const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered:', registration);
+      console.log('✅ Service Worker registered:', registration.scope);
     }
   } catch (error) {
-    console.error('Failed to initialize notifications:', error);
+    console.error('❌ Failed to initialize notifications:', error);
   }
 }
