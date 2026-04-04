@@ -35,6 +35,23 @@ function openDB() {
   });
 }
 
+// Helper function to get all reminders from IndexedDB
+async function getAllReminders() {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const db = await openDB();
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.getAll();
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 // Listen for reminders from the client
 self.addEventListener('message', async (event) => {
   const { type, reminder } = event.data;
@@ -52,7 +69,13 @@ self.addEventListener('message', async (event) => {
       const store = transaction.objectStore(STORE_NAME);
       
       console.log('💾 Storing reminder in IndexedDB');
-      await store.put(reminder);
+      
+      // Wrap the put operation in a promise
+      await new Promise((resolve, reject) => {
+        const request = store.put(reminder);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve();
+      });
       
       console.log('✅ Reminder stored successfully');
       
@@ -64,16 +87,17 @@ self.addEventListener('message', async (event) => {
   } else if (type === 'GET_REMINDERS') {
     console.log('🔍 Getting all reminders');
     try {
-      const db = await openDB();
-      const transaction = db.transaction(STORE_NAME, 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const reminders = await store.getAll();
+      const reminders = await getAllReminders();
       
       console.log('✅ Found reminders:', reminders);
-      event.ports[0].postMessage({ reminders });
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ reminders });
+      }
     } catch (error) {
       console.error('❌ Failed to get reminders:', error);
-      event.ports[0].postMessage({ reminders: [] });
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ reminders: [] });
+      }
     }
   }
 });
@@ -158,10 +182,7 @@ setInterval(async () => {
   try {
     console.log('🔄 Checking for pending reminders...');
     
-    const db = await openDB();
-    const transaction = db.transaction(STORE_NAME, 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const reminders = await store.getAll();
+    const reminders = await getAllReminders();
     
     console.log(`📋 Found ${reminders.length} total reminders`);
     
@@ -180,8 +201,12 @@ setInterval(async () => {
         
         // Mark as sent
         reminder.is_sent = true;
-        const updateTransaction = db.transaction(STORE_NAME, 'readwrite');
-        updateTransaction.objectStore(STORE_NAME).put(reminder);
+        
+        openDB().then((db) => {
+          const transaction = db.transaction(STORE_NAME, 'readwrite');
+          const store = transaction.objectStore(STORE_NAME);
+          store.put(reminder);
+        }).catch(error => console.error('❌ Failed to mark reminder as sent:', error));
       }
     });
     
