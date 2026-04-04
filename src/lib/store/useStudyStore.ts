@@ -507,7 +507,15 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       const task = tasks.find(t => t.id === taskId);
       const taskTitle = task?.title || 'Task';
 
-      console.log('📝 Creating reminder for task:', taskTitle);
+      // DEBUG: Log reminder time processing
+      const now = new Date();
+      const delayMs = reminderTime.getTime() - now.getTime();
+      console.log('📝 addReminder - Processing:');
+      console.log('   Input reminderTime:', reminderTime.toString());
+      console.log('   Unix timestamp:', reminderTime.getTime());
+      console.log('   ISO string:', reminderTime.toISOString());
+      console.log('   Current time:', now.toString());
+      console.log('   Delay:', Math.round(delayMs / 1000), 'seconds');
 
       // Store as Unix timestamp (timezone-independent)
       const reminderTimestamp = reminderTime.getTime();

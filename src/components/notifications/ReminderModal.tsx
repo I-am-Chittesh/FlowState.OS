@@ -53,6 +53,18 @@ export default function ReminderModal({
       parseInt(minutes)
     );
 
+    // DEBUG: Log the exact time being set
+    const now = new Date();
+    const delayMs = reminderDate.getTime() - now.getTime();
+    console.log('🎯 ReminderModal - Setting reminder:');
+    console.log('   Selected date input:', selectedDate);
+    console.log('   Selected time input:', selectedTime);
+    console.log('   Created local Date object:', reminderDate.toString());
+    console.log('   Unix timestamp:', reminderDate.getTime());
+    console.log('   ISO string:', reminderDate.toISOString());
+    console.log('   Current time now:', now.toString());
+    console.log('   Delay from now:', delayMs, 'ms (', Math.round(delayMs / 1000), 'seconds)');
+    
     onConfirm(reminderDate);
     resetForm();
   };

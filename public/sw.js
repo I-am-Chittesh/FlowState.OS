@@ -56,10 +56,19 @@ async function getAllReminders() {
 self.addEventListener('message', async (event) => {
   const { type, reminder } = event.data;
   
-  console.log('📨 Service worker received message:', type, reminder);
+  console.log('📨 Service worker received message:', type);
+  console.log('   Full reminder object:', reminder);
   
   if (type === 'REGISTER_REMINDER') {
-    console.log('📌 Registering reminder:', reminder);
+    console.log('📌 REGISTER_REMINDER - Full Debug:');
+    console.log('   reminder.reminder_time (string):', reminder.reminder_time);
+    const parsedDate = new Date(reminder.reminder_time);
+    const now = new Date();
+    const delayMs = parsedDate.getTime() - now.getTime();
+    console.log('   Parsed date:', parsedDate.toString());
+    console.log('   Current server time:', now.toString());
+    console.log('   Delay:', Math.round(delayMs / 1000), 'seconds');
+    console.log('   Will fire:', delayMs <= 0 ? 'YES (IMMEDIATELY!)' : 'NO (future)');
     
     try {
       const db = await openDB();
@@ -107,33 +116,29 @@ function scheduleReminder(reminder) {
   const now = new Date().getTime();
   const delay = reminderTime - now;
   
-  console.log('⏰ SCHEDULING REMINDER (registration):');
-  console.log('   Raw reminder.reminder_time:', reminder.reminder_time);
-  console.log('   Task:', reminder.task_title);
-  console.log('   Scheduled for:', new Date(reminderTime).toLocaleString());
-  console.log('   Current time:', new Date(now).toLocaleString());
+  console.log('⏰ scheduleReminder - CRITICAL CHECK:');
+  console.log('   Reminder time:', new Date(reminderTime).toString());
+  console.log('   Current time:', new Date(now).toString());
+  console.log('   Delay (ms):', delay);
   console.log('   Delay (seconds):', Math.round(delay / 1000));
-  console.log('   Delay (minutes):', Math.round(delay / 60000));
+  console.log('   Reminder is in the FUTURE:', delay > 0 ? 'YES' : 'NO');
+  console.log('   Will fire now:', delay < 0 ? 'YES' : 'NO');
   
-  // ON MOBILE/ANDROID: DO NOT FIRE IMMEDIATELY
-  // Just register it - the periodic check will fire it when the time arrives
-  
-  if (delay >= 0) {
-    console.log(`📲 FUTURE REMINDER: Waiting for scheduled time (${Math.round(delay / 1000)} seconds away)`);
-    
-    // Try to register periodic background sync (Android/iOS)
-    if ('sync' in self.registration) {
-      self.registration.sync.register(`reminder-${reminder.id}`).catch(err => {
-        console.log('ℹ️ Background Sync not available, relying on periodic checks');
-      });
-    }
-  } else if (delay < 0 && delay > -60000) {
-    // Only fire if reminder is less than 1 minute in the past
-    console.log(`⚠️ PAST REMINDER: Only ${Math.round(Math.abs(delay) / 1000)} seconds overdue`);
-    console.log('   Will NOT fire on registration - periodic check will catch it');
-  } else {
-    console.log(`⏭️ VERY OVERDUE: Reminder is ${Math.round(Math.abs(delay) / 1000)} seconds in the past - skipping`);
+  // ABSOLUTELY DO NOT fire future reminders
+  if (delay > 0) {
+    console.log(`📲 FUTURE REMINDER: Will NOT fire. Waiting ${Math.round(delay / 1000)} seconds`);
+    // Future reminder - only periodic checks will fire it
+    return;
   }
+  
+  if (delay < 0 && delay > -60000) {
+    // Very recent past - could be a clock skew situation
+    console.log(`⚠️ RECENT PAST: Reminder is ${Math.round(Math.abs(delay) / 1000)} seconds ago`);
+    console.log('   NOT firing on registration to avoid duplicates');
+    return;
+  }
+  
+  console.log('⏭️ Reminder is way too old, skipping');
 }
 
 function fireNotification(reminder) {
@@ -254,9 +259,9 @@ self.addEventListener('sync', (event) => {
             const reminderTime = new Date(reminder.reminder_time).getTime();
             
             // Fire if it's time and not already sent
-            // Only fire if PAST the reminder time (now >= reminderTime)
-            // NO grace window - must be actually in the past
-            if (reminderTime <= now && !reminder.is_sent) {
+            // Only fire if PAST the reminder time (now > reminderTime)
+            // Use > instead of >= to be extra safe
+            if (reminderTime < now && !reminder.is_sent) {
               console.log(`🔔 Background sync firing: ${reminder.task_title}`);
               fireNotification(reminder);
               reminder.is_sent = true;
@@ -303,8 +308,8 @@ self.addEventListener('periodicsync', (event) => {
             const reminderTime = new Date(reminder.reminder_time).getTime();
             
             // Only fire if reminder time has PASSED (now >= reminderTime)
-            // Do NOT use a grace window here
-            if (reminderTime <= now && !reminder.is_sent) {
+            // Use < instead of <= to be extra safe
+            if (reminderTime < now && !reminder.is_sent) {
               console.log(`🔔 Periodic sync firing: ${reminder.task_title}`);
               fireNotification(reminder);
               firedCount++;
