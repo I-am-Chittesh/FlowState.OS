@@ -85,19 +85,21 @@ export async function subscribeToNotifications(): Promise<boolean> {
 
     console.log('💾 Saving subscription to Supabase...');
 
-    // First, try to delete existing subscription for this user
-    await supabase
-      .from('push_subscriptions')
-      .delete()
-      .eq('user_id', user.id);
-
-    // Then insert the new subscription
+    // Use upsert to handle duplicate key constraint
     const { error } = await supabase
       .from('push_subscriptions')
-      .insert(subscriptionData);
+      .upsert(
+        {
+          user_id: user.id,
+          subscription: subscription.toJSON(),
+        },
+        {
+          onConflict: 'user_id',
+        }
+      );
 
     if (error) {
-      console.error('❌ Failed to save subscription to Supabase:', error);
+      console.error('❌ Failed to save subscription:', error);
       return false;
     }
 
