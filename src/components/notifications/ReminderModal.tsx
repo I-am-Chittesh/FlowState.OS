@@ -181,6 +181,23 @@ export default function ReminderModal({
                   )}
                 </button>
               </div>
+
+              {/* Debug Info */}
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <p className="text-xs text-slate-500 mb-2">Debug: Open DevTools (F12) to see detailed logs</p>
+                <button
+                  onClick={() => {
+                    console.log('🧪 DEBUG: Current reminder state:', {
+                      date: selectedDate || defaultDate,
+                      time: selectedTime,
+                      fullTime: new Date(`${selectedDate || defaultDate}T${selectedTime}`).toISOString()
+                    });
+                  }}
+                  className="w-full px-3 py-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-400 rounded font-mono transition-colors"
+                >
+                  🧪 Log Current Reminder
+                </button>
+              </div>
             </div>
           </motion.div>
         </>

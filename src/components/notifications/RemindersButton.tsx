@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Bell, X } from "lucide-react";
 import { useStudyStore } from "../../lib/store/useStudyStore";
-import { requestNotificationPermission } from "../../lib/notifications/notificationService";
+import { requestNotificationPermission, debugVerifyReminders, testNotification } from "../../lib/notifications/notificationService";
 import ReminderModal from "./ReminderModal";
 
 interface RemindersButtonProps {

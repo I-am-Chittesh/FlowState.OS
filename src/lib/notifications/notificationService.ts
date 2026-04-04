@@ -168,3 +168,59 @@ export async function initializeNotifications(): Promise<void> {
     console.error('❌ Failed to initialize notifications:', error);
   }
 }
+
+/**
+ * Debug function to test if reminders are saved in IndexedDB
+ */
+export async function debugVerifyReminders(): Promise<void> {
+  if (!isNotificationSupported()) {
+    console.warn('❌ Notifications not supported');
+    return;
+  }
+
+  try {
+    console.log('\n🧪 TESTING REMINDERS...');
+    console.log('📡 Calling getRemindersFromWorker()');
+    
+    const reminders = await getRemindersFromWorker();
+    
+    console.log(`✅ getRemindersFromWorker returned ${reminders.length} reminders:`, reminders);
+    
+    if (reminders.length === 0) {
+      console.warn('⚠️ No reminders found in service worker IndexedDB');
+    } else {
+      console.log('✅ Reminders are stored in service worker!');
+      reminders.forEach((r, i) => {
+        console.log(`  [${i}] Task: ${r.task_title}, Time: ${new Date(r.reminder_time).toLocaleString()}`);
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error verifying reminders:', error);
+  }
+}
+
+/**
+ * Manual test - show a notification immediately
+ */
+export async function testNotification(): Promise<void> {
+  if (!isNotificationSupported()) {
+    console.warn('❌ Notifications not supported');
+    return;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    
+    registration.showNotification('🧪 FlowState Test Notification', {
+      body: 'If you see this, notifications are working!',
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: 'test-notification',
+      requireInteraction: false
+    });
+    
+    console.log('✅ Test notification sent!');
+  } catch (error) {
+    console.error('❌ Failed to send test notification:', error);
+  }
+}

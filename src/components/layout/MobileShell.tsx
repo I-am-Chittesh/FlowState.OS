@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { LayoutGrid, Timer, CheckSquare, Settings } from "lucide-react";
-import { initializeNotifications } from "../../lib/notifications/notificationService";
+import { initializeNotifications, debugVerifyReminders, testNotification } from "../../lib/notifications/notificationService";
 
 export default function MobileShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -15,6 +15,17 @@ export default function MobileShell({ children }: { children: React.ReactNode })
     initializeNotifications().catch((error) => {
       console.warn("Failed to initialize notifications:", error);
     });
+
+    // Expose debug functions to window for testing
+    if (typeof window !== 'undefined') {
+      (window as any).FlowStateDebug = {
+        verifyReminders: debugVerifyReminders,
+        testNotification: testNotification
+      };
+      console.log('🧪 Debug functions available! Run:');
+      console.log('  FlowStateDebug.verifyReminders() - Check saved reminders');
+      console.log('  FlowStateDebug.testNotification() - Send test notification');
+    }
   }, []);
 
   const isLoginPage = pathname === "/login" || pathname === "/callback";
