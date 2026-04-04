@@ -496,6 +496,11 @@ export const useStudyStore = create<StudyState>((set, get) => ({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Get task title from current state
+    const { tasks } = get();
+    const task = tasks.find(t => t.id === taskId);
+    const taskTitle = task?.title || 'Task';
+
     const { data, error } = await supabase
       .from('reminders')
       .insert({
@@ -508,17 +513,28 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       .single();
 
     if (!error && data) {
+      const newReminder = {
+        ...data,
+        reminder_time: new Date(data.reminder_time),
+        created_at: new Date(data.created_at),
+        updated_at: new Date(data.updated_at)
+      };
+      
       set((state) => ({
         reminders: [
           ...state.reminders,
-          {
-            ...data,
-            reminder_time: new Date(data.reminder_time),
-            created_at: new Date(data.created_at),
-            updated_at: new Date(data.updated_at)
-          }
+          newReminder
         ]
       }));
+
+      // Register with service worker immediately
+      await registerReminder({
+        id: data.id,
+        task_id: taskId,
+        task_title: taskTitle,
+        reminder_time: reminderTime.toISOString(),
+        is_sent: false
+      }).catch(error => console.error('Failed to register reminder with service worker:', error));
     }
   },
 

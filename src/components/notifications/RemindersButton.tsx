@@ -3,25 +3,20 @@
 import { useState } from "react";
 import { Bell, X } from "lucide-react";
 import { useStudyStore } from "../../lib/store/useStudyStore";
-import { registerReminder, requestNotificationPermission } from "../../lib/notifications/notificationService";
+import { requestNotificationPermission } from "../../lib/notifications/notificationService";
 import ReminderModal from "./ReminderModal";
 
 interface RemindersButtonProps {
   taskId: string;
-  taskTitle?: string;
 }
 
-export default function RemindersButton({ taskId, taskTitle = "Task" }: RemindersButtonProps) {
-  const { reminders, addReminder, deleteReminder, tasks } = useStudyStore();
+export default function RemindersButton({ taskId }: RemindersButtonProps) {
+  const { reminders, addReminder, deleteReminder } = useStudyStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Find reminder for this task
   const taskReminder = reminders.find((r) => r.task_id === taskId);
-  
-  // Get the actual task title from tasks array
-  const task = tasks.find((t) => t.id === taskId);
-  const displayTaskTitle = task?.title || taskTitle;
 
   const handleAddReminder = async (reminderTime: Date) => {
     setIsLoading(true);
@@ -34,17 +29,8 @@ export default function RemindersButton({ taskId, taskTitle = "Task" }: Reminder
         return;
       }
 
-      // Add reminder to database
+      // Add reminder - this now handles service worker registration
       await addReminder(taskId, reminderTime);
-      
-      // Register with service worker
-      await registerReminder({
-        id: `temp-${Date.now()}`, // Temporary ID, will be replaced after DB response
-        task_id: taskId,
-        task_title: displayTaskTitle,
-        reminder_time: reminderTime.toISOString(),
-        is_sent: false
-      });
       
       setIsModalOpen(false);
     } catch (error) {
