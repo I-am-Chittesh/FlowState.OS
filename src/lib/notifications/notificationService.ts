@@ -163,6 +163,19 @@ export async function initializeNotifications(): Promise<void> {
       console.log('📝 Registering service worker...');
       const registration = await navigator.serviceWorker.register('/sw.js');
       console.log('✅ Service Worker registered:', registration.scope);
+      
+      // Register periodic background sync for mobile
+      // This ensures reminders fire even when app is closed
+      if ('periodicSync' in registration) {
+        try {
+          await (registration as any).periodicSync.register('reminder-check', {
+            minInterval: 1 * 60 * 1000 // Check every 1 minute (minimum for most browsers)
+          });
+          console.log('✅ Periodic background sync registered (mobile support)');
+        } catch (error) {
+          console.log('ℹ️ Periodic sync not available (may not be supported on this device)');
+        }
+      }
     }
   } catch (error) {
     console.error('❌ Failed to initialize notifications:', error);
