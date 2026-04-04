@@ -3,6 +3,7 @@
 import { Check, Trash2, PlayCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Task } from "../../../lib/store/useStudyStore";
+import RemindersButton from "../../notifications/RemindersButton";
 
 export type TaskGroupType = "overdue" | "today" | "upcoming";
 
@@ -136,6 +137,10 @@ export default function TaskGroup({
 
               {/* Action Buttons - Hidden until hover on desktop, visible on mobile */}
               <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                {!task.completed && (
+                  <RemindersButton taskId={task.id} />
+                )}
+
                 {onStartTask && !task.completed && (
                   <motion.button
                     whileHover={{ scale: 1.1 }}

@@ -1,12 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { LayoutGrid, Timer, CheckSquare, Settings } from "lucide-react";
+import { initializeNotifications } from "../../lib/notifications/notificationService";
 
 export default function MobileShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  useEffect(() => {
+    // Initialize notifications on app startup
+    initializeNotifications().catch((error) => {
+      console.warn("Failed to initialize notifications:", error);
+    });
+  }, []);
 
   const isLoginPage = pathname === "/login" || pathname === "/callback";
 

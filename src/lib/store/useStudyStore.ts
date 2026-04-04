@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '../supabase';
 import { getPressureIndex, getUrgencyTag, getDaysRemaining } from '../calculations';
 import { Reminder } from '../types';
+import { registerReminder } from '../notifications/notificationService';
 
 // --- TYPES ---
 export interface Goal {
@@ -471,8 +472,23 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       .eq('user_id', user.id)
       .order('reminder_time', { ascending: true });
 
-    set({
-      reminders: data?.map(r => ({ ...r, reminder_time: new Date(r.reminder_time), created_at: new Date(r.created_at), updated_at: new Date(r.updated_at) })) || []
+    const reminders = data?.map(r => ({ ...r, reminder_time: new Date(r.reminder_time), created_at: new Date(r.created_at), updated_at: new Date(r.updated_at) })) || [];
+    
+    set({ reminders });
+
+    // Register each reminder with the service worker
+    const { tasks } = get();
+    reminders.forEach((reminder) => {
+      const task = tasks.find(t => t.id === reminder.task_id);
+      const taskTitle = task?.title || 'Task';
+      
+      registerReminder({
+        id: reminder.id,
+        task_id: reminder.task_id,
+        task_title: taskTitle,
+        reminder_time: reminder.reminder_time.toISOString(),
+        is_sent: reminder.is_sent
+      }).catch(error => console.error('Failed to register reminder:', error));
     });
   },
 
