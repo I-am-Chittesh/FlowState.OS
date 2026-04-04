@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../supabase';
 import { getPressureIndex, getUrgencyTag, getDaysRemaining } from '../calculations';
+import { Reminder } from '../types';
 
 // --- TYPES ---
 export interface Goal {
@@ -47,6 +48,8 @@ interface StudyState {
 
   goals: Goal[];
   tasks: Task[];
+  reminders: Reminder[];
+  lastAppOpened: Date;
   
   // Pressure tracking
   pressureByGoalId: { [goalId: string]: number }; // 0-100 pressure per goal
@@ -82,6 +85,13 @@ interface StudyState {
   addTask: (title: string, goalId: string | null) => Promise<void>;
   toggleTask: (id: string, completed: boolean) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  
+  // Reminder Actions
+  fetchReminders: () => Promise<void>;
+  addReminder: (taskId: string, reminderTime: Date) => Promise<void>;
+  deleteReminder: (reminderId: string) => Promise<void>;
+  markAppOpened: () => Promise<void>;
+  checkInactivity: () => Promise<void>;
 }
 
 export const useStudyStore = create<StudyState>((set, get) => ({
@@ -108,6 +118,8 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   totalTime: 0,
   goals: [],
   tasks: [],
+  reminders: [],
+  lastAppOpened: new Date(),
   pressureByGoalId: {},
   urgencyByGoalId: {},
 
@@ -370,11 +382,19 @@ export const useStudyStore = create<StudyState>((set, get) => ({
       totalTime: profileData?.total_time || 0,
       sessionsCompleted: profileData?.sessions_completed || 0,
       userName: profileData?.full_name || user.user_metadata?.full_name || "User",
-      spotifyToken: spotifyToken
+      spotifyToken: spotifyToken,
+      lastAppOpened: profileData?.last_app_opened ? new Date(profileData.last_app_opened) : new Date()
     });
 
     // Clean up expired goals (and their tasks) after loading data
     await get().deleteExpiredGoals();
+
+    // Mark app as opened and fetch reminders
+    await get().markAppOpened();
+    await get().fetchReminders();
+    
+    // Check for inactivity
+    await get().checkInactivity();
   },
 
   deleteExpiredGoals: async () => {
@@ -438,5 +458,106 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   deleteTask: async (id) => {
     await supabase.from('tasks').delete().eq('id', id);
     set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
+  },
+
+  // --- REMINDER ACTIONS ---
+  fetchReminders: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('reminders')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('reminder_time', { ascending: true });
+
+    set({
+      reminders: data?.map(r => ({ ...r, reminder_time: new Date(r.reminder_time), created_at: new Date(r.created_at), updated_at: new Date(r.updated_at) })) || []
+    });
+  },
+
+  addReminder: async (taskId, reminderTime) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('reminders')
+      .insert({
+        user_id: user.id,
+        task_id: taskId,
+        reminder_time: reminderTime.toISOString(),
+        is_sent: false
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      set((state) => ({
+        reminders: [
+          ...state.reminders,
+          {
+            ...data,
+            reminder_time: new Date(data.reminder_time),
+            created_at: new Date(data.created_at),
+            updated_at: new Date(data.updated_at)
+          }
+        ]
+      }));
+    }
+  },
+
+  deleteReminder: async (reminderId) => {
+    await supabase.from('reminders').delete().eq('id', reminderId);
+    set((state) => ({ reminders: state.reminders.filter((r) => r.id !== reminderId) }));
+  },
+
+  markAppOpened: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const now = new Date();
+    set({ lastAppOpened: now });
+
+    // Update in Supabase
+    await supabase
+      .from('profiles')
+      .update({ last_app_opened: now.toISOString() })
+      .eq('id', user.id);
+  },
+
+  checkInactivity: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('last_app_opened')
+      .eq('id', user.id)
+      .single();
+
+    if (profileData?.last_app_opened) {
+      const lastOpened = new Date(profileData.last_app_opened);
+      const now = new Date();
+      const daysSinceOpened = Math.floor((now.getTime() - lastOpened.getTime()) / (1000 * 60 * 60 * 24));
+
+      // If 3+ days have passed, send inactivity notification
+      if (daysSinceOpened >= 3) {
+        // Trigger notification (will be handled by service worker)
+        if ('serviceWorker' in navigator && 'Notification' in window) {
+          try {
+            const registration = await navigator.serviceWorker.ready;
+            registration.showNotification('FlowState: Get Back on Track', {
+              body: `You've been away for ${daysSinceOpened} days. Open the app and complete one Pomodoro session to restart your momentum.`,
+              icon: '/manifest.json',
+              badge: '/favicon.ico',
+              tag: 'inactivity-notification',
+              requireInteraction: false
+            });
+          } catch (error) {
+            console.error('Failed to show inactivity notification:', error);
+          }
+        }
+      }
+    }
   },
 }));
