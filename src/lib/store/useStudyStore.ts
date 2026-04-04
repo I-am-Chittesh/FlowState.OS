@@ -509,12 +509,15 @@ export const useStudyStore = create<StudyState>((set, get) => ({
 
       console.log('📝 Creating reminder for task:', taskTitle);
 
+      // Store as Unix timestamp (timezone-independent)
+      const reminderTimestamp = reminderTime.getTime();
+      
       const { data, error } = await supabase
         .from('reminders')
         .insert({
           user_id: user.id,
           task_id: taskId,
-          reminder_time: reminderTime.toISOString(),
+          reminder_time: new Date(reminderTimestamp).toISOString(),
           is_sent: false
         })
         .select()

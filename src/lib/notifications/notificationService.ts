@@ -50,17 +50,31 @@ export async function registerReminder(reminder: ReminderData): Promise<void> {
   }
 
   try {
+    const now = new Date();
+    const reminderDate = new Date(reminder.reminder_time);
+    const delayMs = reminderDate.getTime() - now.getTime();
+    const delaySec = Math.round(delayMs / 1000);
+    
+    console.log('🔄 registerReminder - FULL DEBUG INFO:');
+    console.log('   reminder_time (input):', reminder.reminder_time);
+    console.log('   Parsed as date:', reminderDate.toLocaleString());
+    console.log('   Current time:', now.toLocaleString());
+    console.log('   Delay:', delaySec, 'seconds (', Math.round(delayMs / 60000), 'minutes )');
+    
     console.log('🔄 Waiting for service worker...');
     const registration = await navigator.serviceWorker.ready;
     console.log('✅ Service worker ready');
     
     if (navigator.serviceWorker.controller) {
-      console.log('📤 Posting REGISTER_REMINDER to service worker:', reminder);
+      const isoTime = new Date(reminder.reminder_time).toISOString();
+      console.log('📤 Posting REGISTER_REMINDER to service worker');
+      console.log('   Message:', { type: 'REGISTER_REMINDER', reminder: { ...reminder, reminder_time: isoTime } });
+      
       navigator.serviceWorker.controller.postMessage({
         type: 'REGISTER_REMINDER',
         reminder: {
           ...reminder,
-          reminder_time: new Date(reminder.reminder_time).toISOString()
+          reminder_time: isoTime
         }
       });
       console.log('✅ Message posted to service worker');
