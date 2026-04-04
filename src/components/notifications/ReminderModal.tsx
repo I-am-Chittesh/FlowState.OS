@@ -20,6 +20,12 @@ export default function ReminderModal({
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("09:00");
 
+  // Get today's date
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
+
   // Get tomorrow's date as default
   const getTomorrowDate = () => {
     const tomorrow = new Date();
@@ -27,6 +33,7 @@ export default function ReminderModal({
     return tomorrow.toISOString().split("T")[0];
   };
 
+  const todayDate = getTodayDate();
   const defaultDate = getTomorrowDate();
 
   const handleConfirm = () => {
@@ -63,6 +70,10 @@ export default function ReminderModal({
   // Format display date nicely
   const formatDisplayDate = (dateString: string) => {
     if (!dateString) return "Select date";
+    
+    if (dateString === todayDate) return "Today";
+    if (dateString === defaultDate) return "Tomorrow";
+    
     const date = new Date(dateString + "T00:00:00");
     return date.toLocaleDateString("en-US", {
       weekday: "short",
@@ -115,7 +126,7 @@ export default function ReminderModal({
                   value={selectedDate || defaultDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   disabled={isLoading}
-                  min={defaultDate}
+                  min={todayDate}
                   className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all disabled:opacity-50"
                 />
               </div>
