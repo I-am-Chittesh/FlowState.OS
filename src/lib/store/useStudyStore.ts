@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../supabase';
 import { getPressureIndex, getUrgencyTag, getDaysRemaining } from '../calculations';
-import { Reminder } from '../types';
+import { Reminder } from '../../types';
 import { registerReminder } from '../notifications/notificationService';
 
 // --- TYPES ---
