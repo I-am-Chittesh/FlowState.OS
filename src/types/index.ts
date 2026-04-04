@@ -17,4 +17,14 @@ export interface SpotifyPlaybackState {
   paused: boolean;
 }
 
+export interface Reminder {
+  id: string;
+  user_id: string;
+  task_id: string;
+  reminder_time: Date;
+  is_sent: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export {};
