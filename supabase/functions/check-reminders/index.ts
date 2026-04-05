@@ -2,6 +2,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore - Deno imports
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+// @ts-ignore - Deno imports
+import { create } from "https://deno.land/x/djwt@v3.0.1/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -128,7 +130,7 @@ async function sendFirebaseMessage(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Get Firebase credentials from environment
+    // Get Firebase credentials
     // @ts-ignore
     const projectId = Deno.env.get("FIREBASE_PROJECT_ID") || "";
     // @ts-ignore
@@ -141,151 +143,53 @@ async function sendFirebaseMessage(
       return { success: false, error: "Missing Firebase credentials" };
     }
 
-    console.log("🔐 Firebase: Creating JWT for service account...");
+    console.log("🔐 Firebase: Creating JWT...");
 
-    // Create JWT for service account
+    // Process private key - unescape if needed
+    let pemKey = privateKeyStr.trim();
+    if (pemKey.includes("\\n")) {
+      pemKey = pemKey.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
+    }
+
     const now = Math.floor(Date.now() / 1000);
-    const expiresIn = 3600;
-
-    const header = {
-      alg: "RS256",
-      typ: "JWT",
-    };
-
     const jwtPayload = {
       iss: clientEmail,
       scope: "https://www.googleapis.com/auth/cloud-platform",
       aud: "https://oauth2.googleapis.com/token",
-      exp: now + expiresIn,
+      exp: now + 3600,
       iat: now,
     };
 
-    // Utility to base64url encode
-    const base64urlEncode = (obj: object | string): string => {
-      const str = typeof obj === "string" ? obj : JSON.stringify(obj);
-      const bytes = new TextEncoder().encode(str);
-      let binary = "";
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      return btoa(binary)
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=/g, "");
-    };
-
-    const headerEncoded = base64urlEncode(header);
-    const payloadEncoded = base64urlEncode(jwtPayload);
-    const signatureInput = `${headerEncoded}.${payloadEncoded}`;
-
-    console.log("🔑 Signing JWT with private key...");
-
-    // Parse private key - handle both raw and escaped formats
-    let pemKey = privateKeyStr.trim();
+    console.log("🔑 Signing with djwt...");
     
-    // Unescape if needed
-    if (pemKey.includes("\\n")) {
-      console.log("ℹ️ Unescaping private key newlines");
-      pemKey = pemKey.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
-    }
-
-    console.log("🔍 Private key format check:");
-    console.log("  Starts with:", pemKey.substring(0, 30));
-    console.log("  Ends with:", pemKey.substring(pemKey.length - 30));
-
-    // Extract base64 content from PEM format
-    const pemMatch = pemKey.match(/-----BEGIN[^-]*-----\s*([\s\S]*?)\s*-----END[^-]*-----/);
-    if (!pemMatch || !pemMatch[1]) {
-      console.error("❌ Could not parse PEM format");
-      console.error("Key preview:", pemKey.substring(0, 100) + "...");
-      return { success: false, error: "Invalid PEM key format" };
-    }
-
-    const pemContent = pemMatch[1].replace(/\s/g, "");
-    console.log("✅ Extracted base64 content length:", pemContent.length);
-
-    // Convert base64 to binary for PKCS#8 import
-    const binaryString = atob(pemContent);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    console.log("✅ Converted to binary, importing key...");
-
-    // @ts-ignore - Deno crypto import
-    const keyData = await crypto.subtle.importKey(
-      "pkcs8",
-      bytes.buffer,
-      {
-        name: "RSASSA-PKCS1-v1_5",
-        hash: "SHA-256",
-      },
-      false,
-      ["sign"]
+    // Use djwt to sign - it handles PEM keys properly
+    // @ts-ignore
+    const jwt = await create(
+      { alg: "RS256", typ: "JWT" },
+      jwtPayload,
+      pemKey
     );
 
-    // @ts-ignore - Deno crypto import
-    const signedArray = await crypto.subtle.sign(
-      "RSASSA-PKCS1-v1_5",
-      keyData,
-      new TextEncoder().encode(signatureInput)
-    );
+    console.log("✅ JWT signed");
+    console.log("📤 Getting Firebase token...");
 
-    const signedBytes = new Uint8Array(signedArray);
-    let binary = "";
-    for (let i = 0; i < signedBytes.byteLength; i++) {
-      binary += String.fromCharCode(signedBytes[i]);
-    }
-    const signatureEncoded = btoa(binary)
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=/g, "");
-
-    const jwt = `${signatureInput}.${signatureEncoded}`;
-
-    console.log("📤 Getting Firebase access token...");
-
-    // Get access token from Google
+    // Get access token
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
     });
 
     const tokenData = await tokenResponse.json() as { access_token?: string; error?: string };
-
     if (!tokenData.access_token) {
-      console.error("❌ Failed to get Firebase access token:", tokenData.error);
-      return { success: false, error: tokenData.error || "Failed to get access token" };
+      console.error("❌ Token error:", tokenData.error);
+      return { success: false, error: tokenData.error || "No token" };
     }
 
-    console.log("✅ Firebase access token obtained");
+    console.log("✅ Access token obtained");
+    console.log("📤 Sending FCM message...");
 
-    // Build FCM message
-    const message = {
-      message: {
-        token: deviceToken,
-        notification: {
-          title: payload.title,
-          body: payload.body,
-          icon: payload.icon,
-          badge: payload.badge,
-        },
-        data: payload.data,
-        webpush: {
-          fcmOptions: {
-            link: `https://flowstate.vercel.app/tasks`,
-          },
-        },
-      },
-    };
-
-    console.log("📤 Sending message to Firebase Cloud Messaging...");
-
-    // Send notification via Firebase
+    // Send notification
     const sendResponse = await fetch(
       `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
       {
@@ -294,22 +198,34 @@ async function sendFirebaseMessage(
           Authorization: `Bearer ${tokenData.access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(message),
+        body: JSON.stringify({
+          message: {
+            token: deviceToken,
+            notification: {
+              title: payload.title,
+              body: payload.body,
+              icon: payload.icon,
+              badge: payload.badge,
+            },
+            data: payload.data,
+            webpush: {
+              fcmOptions: { link: "https://flowstate.vercel.app/tasks" },
+            },
+          },
+        }),
       }
     );
 
     if (!sendResponse.ok) {
       const errorText = await sendResponse.text();
-      console.error(`❌ Firebase API error (${sendResponse.status}):`, errorText);
+      console.error(`❌ FCM error (${sendResponse.status}):`, errorText);
       return { success: false, error: errorText };
     }
 
-    const sendData = await sendResponse.json();
-    console.log("✅ Firebase message sent successfully:", sendData);
-
+    console.log("✅ Message sent successfully");
     return { success: true };
   } catch (error) {
-    console.error("❌ Firebase error:", error);
+    console.error("❌ Error:", error);
     return { success: false, error: String(error) };
   }
 }
