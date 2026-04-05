@@ -2,6 +2,8 @@
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
+// NOTE: Firebase config is PUBLIC by design (exposed in client code)
+// Sensitive data (service account private key) is stored only in Supabase Edge Function secrets
 const firebaseConfig = {
   apiKey: "AIzaSyDzDH2XFaiZmbaHAowiY4aVMguMnWJnz7A",
   authDomain: "flowstate-notifications.firebaseapp.com",

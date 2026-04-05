@@ -38,7 +38,7 @@ export async function subscribeToFirebaseNotifications(): Promise<boolean> {
     console.log('📤 Getting FCM token...');
 
     const token = await getToken(messaging, {
-      vapidKey: 'BCbJOleMLF8Cc7yzctDHZ1Qra1um-mWVYVSNxng36ir5ptMJA92RI25Tju5llwGpEoRhpdmfIHMdlMBsjJjHVgw',
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
     });
 
     if (!token) {
