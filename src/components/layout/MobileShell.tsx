@@ -5,24 +5,24 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { LayoutGrid, Timer, CheckSquare, Settings } from "lucide-react";
-import { initPushNotifications } from "../../lib/notifications/pushService";
+import { initFirebaseNotifications } from "../../lib/notifications/firebaseService";
 
 export default function MobileShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Register service worker first
+    // Register service worker for Firebase messaging
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
         .then((registration) => {
-          console.log('✅ Service Worker registered:', registration);
-          // Then initialize push notifications
-          initPushNotifications().catch((error) => {
-            console.warn("⚠️ Failed to initialize push notifications:", error);
+          console.log('✅ Firebase Service Worker registered:', registration);
+          // Then initialize Firebase notifications
+          initFirebaseNotifications().catch((error) => {
+            console.warn("⚠️ Failed to initialize Firebase notifications:", error);
           });
         })
         .catch((error) => {
-          console.error('❌ Service Worker registration failed:', error);
+          console.error('❌ Firebase Service Worker registration failed:', error);
         });
     }
   }, []);

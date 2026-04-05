@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '../supabase';
 import { getPressureIndex, getUrgencyTag, getDaysRemaining } from '../calculations';
 import { Reminder } from '../../types';
-import { subscribeToNotifications } from '../notifications/pushService';
+import { subscribeToFirebaseNotifications } from '../notifications/firebaseService';
 
 // --- TYPES ---
 export interface Goal {
@@ -548,11 +548,11 @@ export const useStudyStore = create<StudyState>((set, get) => ({
         ]
       }));
 
-      console.log('📡 Ensuring push subscription is active...');
+      console.log('📡 Ensuring Firebase subscription is active...');
 
-      // Ensure user is subscribed to push notifications
-      await subscribeToNotifications().catch(error => {
-        console.warn('⚠️ Could not ensure push subscription:', error);
+      // Ensure user is subscribed to Firebase notifications
+      await subscribeToFirebaseNotifications().catch(error => {
+        console.warn('⚠️ Could not ensure Firebase subscription:', error);
         // Don't throw, the reminder is still saved in DB
       });
 
