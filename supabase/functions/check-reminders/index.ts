@@ -182,17 +182,41 @@ async function sendFirebaseMessage(
 
     // Parse private key - handle both raw and escaped formats
     let pemKey = privateKeyStr.trim();
-    if (!pemKey.includes("-----BEGIN")) {
-      // If it's escaped, unescape it
-      pemKey = pemKey
-        .replace(/\\n/g, "\n")
-        .replace(/\\r/g, "\r");
+    
+    // Unescape if needed
+    if (pemKey.includes("\\n")) {
+      console.log("ℹ️ Unescaping private key newlines");
+      pemKey = pemKey.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
     }
+
+    console.log("🔍 Private key format check:");
+    console.log("  Starts with:", pemKey.substring(0, 30));
+    console.log("  Ends with:", pemKey.substring(pemKey.length - 30));
+
+    // Extract base64 content from PEM format
+    const pemMatch = pemKey.match(/-----BEGIN[^-]*-----\s*([\s\S]*?)\s*-----END[^-]*-----/);
+    if (!pemMatch || !pemMatch[1]) {
+      console.error("❌ Could not parse PEM format");
+      console.error("Key preview:", pemKey.substring(0, 100) + "...");
+      return { success: false, error: "Invalid PEM key format" };
+    }
+
+    const pemContent = pemMatch[1].replace(/\s/g, "");
+    console.log("✅ Extracted base64 content length:", pemContent.length);
+
+    // Convert base64 to binary for PKCS#8 import
+    const binaryString = atob(pemContent);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    console.log("✅ Converted to binary, importing key...");
 
     // @ts-ignore - Deno crypto import
     const keyData = await crypto.subtle.importKey(
       "pkcs8",
-      new TextEncoder().encode(pemKey),
+      bytes.buffer,
       {
         name: "RSASSA-PKCS1-v1_5",
         hash: "SHA-256",

@@ -476,10 +476,10 @@ export const useStudyStore = create<StudyState>((set, get) => ({
     
     set({ reminders });
 
-    // In the new Web Push system, reminders are checked server-side
-    // Just ensure the user is subscribed to push notifications
-    await subscribeToNotifications().catch(error => {
-      console.warn('⚠️ Could not ensure push subscription during fetchReminders:', error);
+    // In the new Firebase system, reminders are checked server-side
+    // Just ensure the user is subscribed to Firebase notifications
+    await subscribeToFirebaseNotifications().catch(error => {
+      console.warn('⚠️ Could not ensure Firebase subscription during fetchReminders:', error);
     });
   },
 
@@ -516,6 +516,7 @@ export const useStudyStore = create<StudyState>((set, get) => ({
         .insert({
           user_id: user.id,
           task_id: taskId,
+          task_title: taskTitle,
           reminder_time: new Date(reminderTimestamp).toISOString(),
           is_sent: false
         })
