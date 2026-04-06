@@ -2,8 +2,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // @ts-ignore - Deno imports
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-// @ts-ignore - Deno imports
-import { create } from "https://deno.land/x/djwt@v3.0.1/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -130,102 +128,38 @@ async function sendFirebaseMessage(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Get Firebase credentials
-    // @ts-ignore
-    const projectId = Deno.env.get("FIREBASE_PROJECT_ID") || "";
-    // @ts-ignore
-    const clientEmail = Deno.env.get("FIREBASE_CLIENT_EMAIL") || "";
-    // @ts-ignore
-    const privateKeyStr = Deno.env.get("FIREBASE_PRIVATE_KEY") || "";
+    console.log("📤 Calling API to send Firebase notification...");
 
-    if (!projectId || !clientEmail || !privateKeyStr) {
-      console.error("❌ Firebase credentials missing");
-      return { success: false, error: "Missing Firebase credentials" };
-    }
-
-    console.log("🔐 Firebase: Creating JWT...");
-
-    // Process private key - unescape if needed
-    let pemKey = privateKeyStr.trim();
-    if (pemKey.includes("\\n")) {
-      pemKey = pemKey.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-    const jwtPayload = {
-      iss: clientEmail,
-      scope: "https://www.googleapis.com/auth/cloud-platform",
-      aud: "https://oauth2.googleapis.com/token",
-      exp: now + 3600,
-      iat: now,
-    };
-
-    console.log("🔑 Signing with djwt...");
-    
-    // Use djwt to sign - it handles PEM keys properly
-    // @ts-ignore
-    const jwt = await create(
-      { alg: "RS256", typ: "JWT" },
-      jwtPayload,
-      pemKey
-    );
-
-    console.log("✅ JWT signed");
-    console.log("📤 Getting Firebase token...");
-
-    // Get access token
-    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    const apiUrl = "https://flowstate.vercel.app/api/send-notification";
+    const response = await fetch(apiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deviceToken,
+        title: payload.title,
+        body: payload.body,
+        icon: payload.icon,
+        badge: payload.badge,
+        data: payload.data,
+      }),
     });
 
-    const tokenData = await tokenResponse.json() as { access_token?: string; error?: string };
-    if (!tokenData.access_token) {
-      console.error("❌ Token error:", tokenData.error);
-      return { success: false, error: tokenData.error || "No token" };
+    const responseData = await response.json() as { success?: boolean; error?: string; messageId?: string };
+    
+    if (!response.ok) {
+      console.error(`❌ API error (${response.status}):`, responseData.error);
+      return { success: false, error: responseData.error || "API request failed" };
     }
 
-    console.log("✅ Access token obtained");
-    console.log("📤 Sending FCM message...");
-
-    // Send notification
-    const sendResponse = await fetch(
-      `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${tokenData.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: {
-            token: deviceToken,
-            notification: {
-              title: payload.title,
-              body: payload.body,
-              icon: payload.icon,
-              badge: payload.badge,
-            },
-            data: payload.data,
-            webpush: {
-              fcmOptions: { link: "https://flowstate.vercel.app/tasks" },
-            },
-          },
-        }),
-      }
-    );
-
-    if (!sendResponse.ok) {
-      const errorText = await sendResponse.text();
-      console.error(`❌ FCM error (${sendResponse.status}):`, errorText);
-      return { success: false, error: errorText };
+    if (responseData.success) {
+      console.log("✅ Message sent successfully via API");
+      return { success: true };
+    } else {
+      console.error("❌ API returned error:", responseData.error);
+      return { success: false, error: responseData.error };
     }
-
-    console.log("✅ Message sent successfully");
-    return { success: true };
   } catch (error) {
-    console.error("❌ Error:", error);
+    console.error("❌ Error calling API:", error);
     return { success: false, error: String(error) };
   }
 }
